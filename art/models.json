@@ -1,13 +1,14 @@
 {
   "_help": "Blockbench projects exported by tools/bbmodel_to_geo.py. Each model: source .bbmodel (relative to the repo), output name, groups left out.",
+  "_author_model": "lakitu_cloud.bbmodel (repo root) is the author's earlier Lakitu + cloud project, kept as is. To use it again, point the lakitu and lakitu_cloud entries' source at it.",
   "models": [
     {
-      "source": "lakitu_cloud.bbmodel",
+      "source": "art/lakitu.bbmodel",
       "name": "lakitu",
       "skip_groups": []
     },
     {
-      "source": "lakitu_cloud.bbmodel",
+      "source": "art/lakitu.bbmodel",
       "name": "lakitu_cloud",
       "skip_groups": [
         "lakitu"

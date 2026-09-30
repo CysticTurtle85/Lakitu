@@ -63,7 +63,8 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     }
 
     public static EntityType.Builder<LakituEntity> configure(EntityType.Builder<LakituEntity> builder) {
-        return builder.sized(1.0F, 2.0F).eyeHeight(1.7F).notInPeaceful().clientTrackingRange(10);
+        // Cloud 1.25 blocks across, hair tips at 2 blocks, goggles at 1.45 (spiny eggs leave from there).
+        return builder.sized(1.25F, 2.0F).eyeHeight(1.45F).notInPeaceful().clientTrackingRange(10);
     }
 
     public static AttributeSupplier.Builder createAttributes() {

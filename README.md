@@ -29,7 +29,7 @@ gradlew distAll
 Release jars land in `build/dist/`. Each folder in `targets/` is one Minecraft version + loader.
 
 - `tools/bbmodel_to_geo.py` regenerates the GeckoLib models and textures from the Blockbench projects listed in
-  `art/models.json` (`lakitu_cloud.bbmodel` gives both the Lakitu and the cloud; `art/spiny_egg.bbmodel`).
+  `art/models.json` (`art/lakitu.bbmodel` gives both the Lakitu and the cloud; `art/spiny_egg.bbmodel`).
 - `tools/smoke_test.py <target>` runs an automated in-game test (Windows): a real server with the release jar, a dev
   client driven by the dev-only test driver (`src/testdriver`), RCON checks and screenshots in `tools/smoke/`.
 

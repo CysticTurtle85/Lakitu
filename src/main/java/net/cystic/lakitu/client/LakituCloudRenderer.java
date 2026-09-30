@@ -11,6 +11,6 @@ import software.bernie.geckolib.renderer.base.GeoRenderState;
 public class LakituCloudRenderer<R extends LivingEntityRenderState & GeoRenderState> extends GeoEntityRenderer<LakituCloudEntity, R> {
     public LakituCloudRenderer(EntityRendererProvider.Context context) {
         super(context, Lakitu.cloudEntity.get());
-        this.shadowRadius = 0.6F;
+        this.shadowRadius = 0.7F;
     }
 }

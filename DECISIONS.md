@@ -59,7 +59,9 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 
 | Topic | Decision |
 |---|---|
-| Cloud model | The author's updated `lakitu_cloud.bbmodel` (2026-09-30): new 15-cube `cloud` group; the old `cloud_old` group is hidden in Blockbench and left out of the game. Hitboxes follow it: cloud 1 × 0.6 blocks, Lakitu 1 × 2 blocks. The rider sits where the Lakitu sits in the model (hips 12 px up). |
+| Lakitu and cloud models | **New models (author, 2026-09-30):** "without deleting my model create a cloud and lakitu model ... as accurate as possible while fitting the minecraft style", and it doesn't have to resemble the old one. `art/lakitu.bbmodel` (47 cubes, 128×128 texture, box UV) follows the NSMBU / Super Mario Odyssey Lakitu: yellow Koopa with big round goggles (pupils behind the lenses, strap round the head), three hair strands, round nose, open mouth, cream plastron with segment lines, green shell with white rim and a central scute, arms reaching forward so both hands grip the cloud's front edge. Lakitu's Cloud is white puffs with 1 px bevels, soft blue-grey underside, and a face (eyes and a small smile, as in Odyssey). Groups: `lakitu` (with `body`, `head`, `right_arm` > `right_hand`, `left_arm` > `left_hand`) and `cloud`; the rideable cloud is the same project without the `lakitu` group. |
+| Author's earlier model | `lakitu_cloud.bbmodel` and `texture.png` in the repo root are kept untouched. To use them again, point the two entries in `art/models.json` back at `lakitu_cloud.bbmodel` and re-run `python tools/bbmodel_to_geo.py`. |
+| Hitboxes | Follow the new model: cloud 1.25 × 0.75 blocks (body 1.25 across, puffs to 1.4, seat 12 px up where the rider's hips go), Lakitu 1.25 × 2 blocks with eyes (goggles) at 1.45, which is also where spiny eggs leave from. Shadows 0.7. |
 | Spiny egg model | Made for now (`art/spiny_egg.bbmodel`, 32×32 texture): red shell, cream spikes with yellow tips, corner nubs; spins in flight. The author can repaint it in Blockbench and re-run `python tools/bbmodel_to_geo.py`. |
 
 ## Placeholders (to replace)
@@ -67,5 +69,5 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 - Sounds: ghastling hurt/death sounds, Happy Ghast harness sounds on summon/dismiss, egg throw and turtle-egg crack for spiny eggs.
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
 - Item icon, spawn egg and mod icon: simple 16×16 pixel art drawn in code.
-- Texture: the Blockbench template texture from `texture.png`. Animations: a gentle bob made in code.
+- Animations: a gentle bob made in code (the new model has named arm/hand/head bones ready for more).
 - Models are generated from the Blockbench projects listed in `art/models.json` by `tools/bbmodel_to_geo.py` (the cloud-only model drops the `lakitu` group).

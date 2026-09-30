@@ -96,8 +96,9 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
     // Not noSave(): vanilla refuses to let anyone ride an entity type that can't be saved.
     public static EntityType.Builder<LakituCloudEntity> builder() {
         return EntityType.Builder.of(LakituCloudEntity::new, MobCategory.MISC)
-                // Hitbox from the model's cloud group (1 x 0.56 blocks); the rider sits where the Lakitu does in it.
-                .sized(1.0F, 0.6F)
+                // Hitbox from art/lakitu.bbmodel's cloud group: the body is 1.25 blocks across (side puffs reach 1.4) and
+                // the seat is 12 px up, where the rider's hips go (passenger point 0.6 minus the player's own 0.6 offset).
+                .sized(1.25F, 0.75F)
                 .passengerAttachments(0.6F)
                 .noSummon()
                 .clientTrackingRange(10);
