@@ -1,0 +1,16 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "lakitu_testdriver"
+version = "1.0.0"
+displayName = "Lakitu test driver (dev only)"
+description = '''Turns mctest system messages into client input for tools/smoke_test.py. Never shipped.'''
+
+[[dependencies.lakitu_testdriver]]
+modId = "lakitu"
+type = "required"
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "CLIENT"

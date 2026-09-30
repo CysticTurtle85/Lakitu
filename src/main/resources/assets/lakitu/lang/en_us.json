@@ -1,0 +1,14 @@
+{
+  "item.lakitu.lakitu_cloud": "Lakitu Cloud",
+  "item.lakitu.lakitu_cloud.health": "Cloud health: %s%%",
+  "item.lakitu.lakitu_cloud.use": "Use to ride; use again while riding to dismount",
+  "item.lakitu.lakitu_spawn_egg": "Lakitu Spawn Egg",
+  "entity.lakitu.lakitu": "Lakitu",
+  "entity.lakitu.lakitu_cloud": "Lakitu Cloud",
+  "message.lakitu.cloud_controls": "Space to rise, Shift to sink. Use the Lakitu Cloud again to dismount",
+  "message.lakitu.cloud_reforming": "Your cloud is re-forming (%s left)",
+  "message.lakitu.cloud_in_use": "This cloud is already out",
+  "death.attack.lakitu.rain": "%1$s melted in the rain",
+  "death.attack.lakitu.rain.player": "%1$s melted in the rain while fighting %2$s",
+  "entity.lakitu.spiny_egg": "Spiny Egg"
+}

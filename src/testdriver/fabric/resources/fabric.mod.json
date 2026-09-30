@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "lakitu_testdriver",
+  "version": "1.0.0",
+  "name": "Lakitu test driver (dev only)",
+  "description": "Turns mctest system messages into client input for tools/smoke_test.py. Never shipped.",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["net.cystic.lakitu.testdriver.fabric.LakituTestDriverFabric"]
+  },
+  "depends": {
+    "lakitu": "*",
+    "fabric-api": "*"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "_help": "Blockbench projects exported by tools/bbmodel_to_geo.py. Each model: source .bbmodel (relative to the repo), output name, groups left out.",
+  "models": [
+    {
+      "source": "lakitu_cloud.bbmodel",
+      "name": "lakitu",
+      "skip_groups": []
+    },
+    {
+      "source": "lakitu_cloud.bbmodel",
+      "name": "lakitu_cloud",
+      "skip_groups": [
+        "lakitu"
+      ]
+    },
+    {
+      "source": "art/spiny_egg.bbmodel",
+      "name": "spiny_egg",
+      "skip_groups": []
+    }
+  ]
+}
