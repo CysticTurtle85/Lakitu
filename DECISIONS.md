@@ -118,10 +118,18 @@ pufferfish puffing up/down; cloud hurt/death = breeze hurt and a wind burst.
 ## Placeholders (to replace)
 
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
-- Mod icon: simple pixel art drawn in code. Item icons (**author, 2026-10-01:** "render from the models"): the
-  Lakitu Cloud is the cloud model from the front with its face, the Spiny Egg the thrown egg's colours with sharp
-  spikes ("more spiky"), the spawn egg in Lakitu's colours (yellow head, goggles, cloud). Altitude and Rain Cloud
-  effect icons: 18×18, drawn in code.
+- Mod icon: simple pixel art drawn in code. Altitude and Rain Cloud effect icons: 18×18, drawn in code.
+
+## Item icons
+
+**Author, 2026-10-01**, picked from several rounds of designs (16×16, drawn in code):
+- Lakitu Cloud: a round puffy cloud with a small face ("Cloud 5").
+- Spiny Egg: after the author's reference picture of a Mario spiny egg: a glossy red ball with short fat white cone
+  spikes all round and three on the face pointing at you, one of them up and to the right ("Spiny 4"). The author
+  wanted the spikes on the face toward the camera visible.
+- Lakitu spawn egg: a real egg, no face (the author: "how you would imagine it in real life"): yellow with green
+  spots. A white egg with green spots was turned down as too Yoshi-like and kept for a possible Yoshi mod (skill art
+  library).
 - Animations: the Lakitu's bob and throw, made in code (the cloud's float is code, see Float) (the throw's keyframes come from the skill's
   `scripts/art/examples/lakitu_throw.py`, checked frame by frame so the arm never passes through the head).
 - Models are generated from the Blockbench projects listed in `art/models.json` by `tools/bbmodel_to_geo.py` (the cloud-only model drops the `lakitu` group).
