@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.cystic.lakitu.AltitudeSpeed;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
+import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.RainCloud;
 import net.cystic.lakitu.item.CloudData;
 import net.cystic.lakitu.item.DismountSlowFall;
@@ -20,7 +21,6 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
@@ -30,6 +30,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -50,8 +51,6 @@ import org.jspecify.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.manager.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
@@ -80,7 +79,6 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
 
     /** Share of the gap to the wanted velocity closed each tick: the floaty, drift-to-a-stop feel. */
     private static final double ACCELERATION = 0.25;
-    private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
 
     /** Clouds currently out in the world, by cloud id (server only). */
     private static final Map<UUID, LakituCloudEntity> ACTIVE = new ConcurrentHashMap<>();
@@ -241,6 +239,19 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         this.move(MoverType.SELF, velocity);
     }
 
+    /**
+     * The cloud's float: 0 to 1 px up and back every 2.5 s, smoothly. Applied to the model (LakituCloudRenderer) and to
+     * the rider's seat here, so the rider bobs with the cloud (author, 2026-10-01).
+     */
+    public static float bob(float ageInTicks) {
+        return (1.0F - Mth.cos(ageInTicks * Mth.TWO_PI / 50.0F)) * 0.5F / 16.0F;
+    }
+
+    @Override
+    protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
+        return super.getPassengerAttachmentPoint(passenger, dimensions, scale).add(0.0, bob(this.tickCount), 0.0);
+    }
+
     @Override
     public Vec3 getDismountLocationForPassenger(LivingEntity passenger) {
         // Leave the rider where they sit instead of searching for the ground: the cloud is usually high up.
@@ -334,7 +345,7 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         }
         this.ejectPassengers();
         this.poof(level);
-        this.playSound(SoundEvents.HARNESS_GOGGLES_UP, 1.0F, 1.0F);
+        this.playSound(LakituSounds.CLOUD_DISMISS, 1.0F, 1.0F);
         this.discard();
     }
 
@@ -453,19 +464,19 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
 
     @Override
     protected SoundEvent getHurtSound(DamageSource source) {
-        return SoundEvents.GHASTLING_HURT;
+        return LakituSounds.CLOUD_HURT;
     }
 
     @Override
     protected SoundEvent getDeathSound() {
-        return SoundEvents.GHASTLING_DEATH;
+        return LakituSounds.CLOUD_DEATH;
     }
 
     // --- GeckoLib -----------------------------------------------------------------------------
 
+    /** No animations: the float is done in code ({@link #bob}) so the rider can float with it. */
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<LakituCloudEntity>("float", test -> test.setAndContinue(IDLE)));
     }
 
     @Override

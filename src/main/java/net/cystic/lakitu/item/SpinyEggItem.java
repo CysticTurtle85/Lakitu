@@ -2,12 +2,12 @@ package net.cystic.lakitu.item;
 
 import java.util.function.Consumer;
 import net.cystic.lakitu.LakituConfig;
+import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.SpinyEggEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
@@ -38,8 +38,8 @@ public class SpinyEggItem extends Item {
                 player.sendOverlayMessage(Component.translatable("message.lakitu.spiny_egg_riders_only"));
             return InteractionResult.FAIL;
         }
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.EGG_THROW, SoundSource.PLAYERS,
-                0.5F, 0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F));
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), LakituSounds.SPINY_EGG_THROW, SoundSource.PLAYERS,
+                0.6F, 0.9F + level.getRandom().nextFloat() * 0.2F);
         if (level instanceof ServerLevel serverLevel)
             Projectile.spawnProjectileFromRotation((egg, thrower, from) -> new SpinyEggEntity(egg, thrower), serverLevel, stack, player, 0.0F, 1.5F, 1.0F);
         player.getCooldowns().addCooldown(stack, LakituConfig.ticks(LakituConfig.values.riderSpinyEggCooldownSeconds));
@@ -48,8 +48,15 @@ public class SpinyEggItem extends Item {
         return InteractionResult.SUCCESS;
     }
 
+    /** Riders only, then the damage the way weapons show theirs ("When thrown:" / " 5 Attack Damage"). */
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
         builder.accept(Component.translatable("item.lakitu.spiny_egg.riders_only").withStyle(ChatFormatting.GRAY));
+        builder.accept(Component.empty());
+        builder.accept(Component.translatable("item.lakitu.spiny_egg.when_thrown").withStyle(ChatFormatting.GRAY));
+        // This side's config: the same as the server's in single player and with a shared config.
+        double damage = LakituConfig.values.riderSpinyEggDamage;
+        String amount = damage == Math.rint(damage) ? String.valueOf((long) damage) : String.valueOf(damage);
+        builder.accept(Component.translatable("item.lakitu.spiny_egg.damage", amount).withStyle(ChatFormatting.DARK_GREEN));
     }
 }

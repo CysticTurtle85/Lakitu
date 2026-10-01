@@ -25,7 +25,8 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 | Unridden cloud | Never exists: if it loses its rider (death, teleport, item leaves the inventory) it vanishes and its health goes back on the item. "Baby ghast logic" = the floaty, drift-to-a-stop flying feel. |
 | Disconnect | **Assumption (changed from "vanish"):** the cloud leaves the world with its rider but is kept in their player data, like a horse, so they log back in still riding instead of falling from the sky. Vanilla also refuses to let players ride entities that can't be saved. The Altitude effect is saved with the player and kept up to date by the cloud. |
 | Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude speed follows the new dimension's height rules straight away. Tested: Nether portal. |
-| Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical at sea level (see Altitude speed). No height cap. |
+| Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical at sea level (see Altitude speed). No height cap. The message on mounting (**author, 2026-10-01**, shorter): "Use the Lakitu Cloud again to dismount. You can now throw Spiny Eggs". |
+| Float | **Author, 2026-10-01:** the rider bobs up and down with the cloud, as much as the cloud does (1 px every 2.5 s). The bob is done in code for both the model and the rider's seat, so they stay in step (the cloud no longer has a GeckoLib animation). |
 | Falling | No fall damage while riding. Dismounting with the item gives Slow Falling until you land. If the cloud dies you fall normally. |
 | Hazards | Lava: burns like any mob. Rain no longer hurts it (see Rain and water). |
 | Inventory preview | **Author, 2026-10-01:** show the cloud in the inventory's player preview "if that's standard for sitting on mobs, if not leave it". Vanilla draws only the player there (no horse, pig or strider under a rider), so it's left as is. |
@@ -68,10 +69,10 @@ to bedrock; with a base of 10 the build limit gives 30 and bedrock 5.
 | Body | One entity, joined model (Lakitu + the same cloud group as the mount). |
 | Movement | Ghast-style floating. **Assumption:** while it has a target it floats to spots 5–9 blocks above and within 6 blocks of the target, so its throws can reach. |
 | Attack | Always hostile, **except** to players riding a Lakitu Cloud. Throws **spiny eggs** (author, 2026-09-30; replaced the snowball placeholder): they arc like snowballs, deal **5 damage** (author, 2026-10-01: "increase the damage to whatever you think it should be"; was 2; `lakituSpinyEggDamage`, scaled by difficulty like other mob projectiles: 3.5 Easy, 5 Normal, 7.5 Hard, like a blaze fireball), and crack open where they land. **Throw animation** (author, 2026-10-01): it pulls an egg out of its cloud with its right hand, lifts it overhead (arm out to the side, clear of the goggles), winds back and throws; the egg leaves its hand 0.5 s into the 0.85 s animation, from where the hand is at that moment. They don't hatch (the author chose "just hurt and break"; Spinies could come later). Every 2 s, 16-block range. |
-| Provoked by a rider | **Default (unanswered):** fights back at the rider who hit it. Config: `lakituRetaliatesAgainstRiders`. |
-| Health | **Default (unanswered):** 20 HP. XP 5 (like a ghast). |
-| Drops | Lakitu Cloud item, only when killed by a player: 2.5% + 1% per Looting level (wither skeleton skull odds). **Spiny eggs** (author, 2026-10-01): 2–4, +1 per Looting level, whoever killed it. Numbers in config. |
-| Spawning | Natural, Overworld, on the ground at Y ≥ 128 (mountain height, config) under open sky, rare (weight 10 in the monster pool × `lakituSpawnChance` 0.1). Not on Peaceful. Spawn egg in the Spawn Eggs tab. |
+| Provoked by a rider | **Author, 2026-10-01:** fights back at the rider who hit it. Config: `lakituRetaliatesAgainstRiders`. |
+| Health | **Author, 2026-10-01:** 30 HP (was the unconfirmed default 20). XP 5 (like a ghast). |
+| Drops | Lakitu Cloud item, only when killed by a player: **10% + 2% per Looting level** (author, 2026-10-01; was 2.5% + 1%, too rare for a rare mob). **Spiny eggs** (author, 2026-10-01): 2–4, +1 per Looting level, whoever killed it. Numbers in config. |
+| Spawning | Natural, Overworld, on the ground at Y ≥ 128 (mountain height, config) under open sky. Not on Peaceful. Spawn egg in the Spawn Eggs tab. **Author, 2026-10-01:** "about as rare as a ghast": weight 10 in the monster pool (~525) × `lakituSpawnChance` **0.8** (was 0.1) makes a mountain-top spawn spot as likely to get a Lakitu as a Nether Wastes spot is to get a ghast (50 of 168 × 1/20). Lakitus still come alone; ghasts come in packs of up to 4. |
 | Hazards | Same as the mount: lava burns it; rain or water makes its cloud a grey, half-speed rain cloud instead of hurting it. |
 
 ## Spiny eggs for cloud riders
@@ -84,7 +85,9 @@ be clear somehow"; drop rate and recipe chosen from options.
 | Item | Spiny Egg, stacks to 16, Combat tab after the eggs. Thrown like an egg, it is the Lakitu's spiny egg: 5 damage (`riderSpinyEggDamage`, not scaled by difficulty since a player threw it), cracks where it lands, never hits the thrower's own cloud. |
 | Who | Only a player riding a Lakitu Cloud. On foot it isn't thrown or used up. |
 | Rate | One per second (`riderSpinyEggCooldownSeconds`; author's choice). |
-| Making it clear | Tooltip "Throw while riding a Lakitu Cloud"; trying on foot says "Spiny Eggs can only be thrown from a Lakitu Cloud"; the Lakitu Cloud's tooltip says "While riding, you can throw Spiny Eggs"; the controls message when you mount says "Space to rise, Shift to sink, Spiny Eggs to throw". |
+| Making it clear | Tooltip "Throw while riding a Lakitu Cloud", then "When thrown: 5 Attack Damage" like a weapon (**author, 2026-10-01**; the number is the config's on that side, the same in single player); trying on foot says "Spiny Eggs can only be thrown from a Lakitu Cloud"; the Lakitu Cloud's tooltip says "While riding, you can throw Spiny Eggs"; mounting says "You can now throw Spiny Eggs". |
+| Dispensers | **Author, 2026-10-01:** no; they stay a cloud rider's weapon. |
+| Spinies | **Author, 2026-10-01:** eggs just break for now. Spinies hatching from the eggs is a planned update, listed on the mod page. |
 | Getting them | Lakitu drops (2–4, +1 per Looting) and a recipe: Egg (any) + Cactus + Red Dye → 2, shapeless (author's choice), unlocked in the recipe book by a cactus or a spiny egg. |
 
 ## Art
@@ -98,12 +101,27 @@ be clear somehow"; drop rate and recipe chosen from options.
 | Hitboxes | Follow the new model: cloud 1.25 × 0.75 blocks (body 1.25 across, puffs to 1.4, seat 12 px up where the rider's hips go), Lakitu 1.25 × 2 blocks with eyes (goggles) at 1.45, which is also where spiny eggs leave from. Shadows 0.7. |
 | Spiny egg model | Made for now (`art/spiny_egg.bbmodel`, 32×32 texture): red shell, cream spikes with yellow tips, corner nubs; spins in flight. The author can repaint it in Blockbench and re-run `python tools/bbmodel_to_geo.py`. |
 
+## Advancements
+
+**Author, 2026-10-01:** "a few", in the Adventure tab: **Lakitu Down** (kill a Lakitu), then **Head in the Clouds**
+(ride a Lakitu Cloud), then **Sky High** (goal: fly a cloud to the build limit, y 319, in the Overworld) and **Return to
+Sender** (hit a Lakitu with a Spiny Egg).
+
+## Sounds
+
+**Author, 2026-10-01:** asked for sounds "from Mario"; real Nintendo sound files can't ship (copyright, takedown risk),
+so the author chose Mario-style sounds rebuilt from vanilla files in `assets/lakitu/sounds.json`, with subtitles:
+Lakitu hurt/death = turtle sounds, higher (a Koopa squeak); Lakitu ambient = breeze air (a whoosh overhead); spiny egg
+throw = small slime, much higher (a cartoon "boing"); spiny egg crack = turtle egg breaking; cloud summon/dismiss =
+pufferfish puffing up/down; cloud hurt/death = breeze hurt and a wind burst.
+
 ## Placeholders (to replace)
 
-- Sounds: ghastling hurt/death sounds, Happy Ghast harness sounds on summon/dismiss, egg throw and turtle-egg crack for spiny eggs.
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
-- Item icons (Lakitu Cloud, spawn egg, Spiny Egg) and mod icon: simple 16×16 pixel art drawn in code. Altitude and
-  Rain Cloud effect icons: 18×18, drawn in code.
-- Animations: a gentle bob and the throw, made in code (the throw's keyframes come from the skill's
+- Mod icon: simple pixel art drawn in code. Item icons (**author, 2026-10-01:** "render from the models"): the
+  Lakitu Cloud is the cloud model from the front with its face, the Spiny Egg the thrown egg's colours with sharp
+  spikes ("more spiky"), the spawn egg in Lakitu's colours (yellow head, goggles, cloud). Altitude and Rain Cloud
+  effect icons: 18×18, drawn in code.
+- Animations: the Lakitu's bob and throw, made in code (the cloud's float is code, see Float) (the throw's keyframes come from the skill's
   `scripts/art/examples/lakitu_throw.py`, checked frame by frame so the arm never passes through the head).
 - Models are generated from the Blockbench projects listed in `art/models.json` by `tools/bbmodel_to_geo.py` (the cloud-only model drops the `lakitu` group).

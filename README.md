@@ -17,6 +17,10 @@ A Minecraft Java Edition mod inspired by Lakitu from the Mario games.
 
 Every number is configurable in `config/lakitu.json`. See [DECISIONS.md](DECISIONS.md) for the full design.
 
+## Planned
+
+- **Spinies**: spiny eggs a Lakitu throws hatch into Spinies where they land.
+
 ## Versions
 
 | Minecraft | Loaders | Requires |

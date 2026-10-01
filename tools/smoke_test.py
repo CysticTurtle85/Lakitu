@@ -6,7 +6,8 @@ Summon + ride, Space/Shift/W movement, Shift doesn't dismount, altitude speed (t
 y~200, Speed II on top), spiny eggs thrown by a rider (cooldown; not on foot), dismount (Slow Falling, effects gone),
 health saved on the item, rain and water (grey rain cloud at half speed, Rain Cloud effect, no damage; the Lakitu
 too), death cooldown, a Lakitu that ignores riders but throws spiny eggs at players on foot (screenshots of the
-throw) and drops 2-4 spiny eggs, the spiny egg recipe, the End (3x) and riding through a Nether portal (0.5x).
+throw) and drops 2-4 spiny eggs, the rider bobbing with the cloud, advancements, the spiny egg recipe, the End
+(3x) and riding through a Nether portal (0.5x).
 Screenshots go to tools/smoke/.
 """
 import math
@@ -66,6 +67,19 @@ def scene(game):
     game.use()
     game.check("summon: riding the cloud", riding())
     game.check("summon: exactly one cloud", clouds() == 1)
+    game.check("advancement: Head in the Clouds", game.passed(
+        "execute if entity @a[advancements={lakitu:adventure/head_in_the_clouds=true}]"))
+    # The rider bobs with the cloud: their height above it rises and falls by up to 1 px (1/16 block) every 2.5 s.
+    seat = []
+    for _ in range(7):
+        rider_y = game.data(PLAYER, "Pos[1]")
+        cloud_y = game.data(CLOUD_SEL, "Pos[1]")
+        if rider_y is not None and cloud_y is not None:
+            seat.append(rider_y - cloud_y)
+        time.sleep(0.4)
+    bob = round(max(seat) - min(seat), 4) if len(seat) >= 5 else None
+    game.values["rider's seat moves (blocks, of 0.0625)"] = bob
+    game.check("rider bobs with the cloud", bob is not None and 0.03 <= bob <= 0.07)
     game.view("THIRD_PERSON_BACK")
     game.shot("2-riding-back")
     game.view("THIRD_PERSON_FRONT")
@@ -197,7 +211,8 @@ def scene(game):
     lakitu_health = game.data("@e[tag=test_lakitu,limit=1]", "Health")
     game.values.update({"rise (2 s space) in rain": wet_rise, "cloud health after ~7 s rain": rained, "Lakitu health after rain": lakitu_health})
     game.check("rain: cloud climbs at ~half speed", wet_rise and rise and 0.4 <= wet_rise / rise <= 0.6)
-    game.check("rain: no damage to cloud or Lakitu", rained == back and lakitu_health == 20.0)
+    lakitu_max = mctest.number(game.run("attribute @e[tag=test_lakitu,limit=1] minecraft:max_health get"))
+    game.check("rain: no damage to cloud or Lakitu", rained == back and lakitu_health is not None and lakitu_health == lakitu_max)
     game.run("weather clear")
     time.sleep(6)  # vanilla rain fades out over ~4 s after the weather clears, then the cloud dries for 1 s
     game.check("dry again: Rain Cloud effect gone", not game.passed(SHOWS_RAIN_CLOUD))
@@ -250,8 +265,10 @@ def scene(game):
         time.sleep(0.15)
     game.run("kill @e[type=lakitu:spiny_egg]")
     game.run("kill @e[type=item]")
-    game.run("kill @e[type=lakitu:lakitu]")
+    # Killed by the player (for the advancement); no Looting.
+    game.run("damage @e[type=lakitu:lakitu,limit=1] 1000 minecraft:player_attack by @a[limit=1]")
     time.sleep(1)
+    game.check("advancement: Lakitu Down", game.passed("execute if entity @a[advancements={lakitu:adventure/lakitu_down=true}]"))
     dropped = game.data('@e[type=item,limit=1,nbt={Item:{id:"lakitu:spiny_egg"}}]', "Item.count")
     game.values["spiny eggs dropped by a Lakitu"] = dropped
     game.check("Lakitu drops 2-4 spiny eggs", dropped is not None and 2 <= dropped <= 4)

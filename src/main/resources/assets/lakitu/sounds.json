@@ -1,0 +1,192 @@
+{
+  "entity.lakitu.ambient": {
+    "subtitle": "subtitles.lakitu.lakitu.ambient",
+    "sounds": [
+      {
+        "name": "minecraft:mob/breeze/idle_air1",
+        "pitch": 1.3,
+        "volume": 0.5
+      },
+      {
+        "name": "minecraft:mob/breeze/idle_air2",
+        "pitch": 1.3,
+        "volume": 0.5
+      },
+      {
+        "name": "minecraft:mob/breeze/idle_air3",
+        "pitch": 1.3,
+        "volume": 0.5
+      },
+      {
+        "name": "minecraft:mob/breeze/idle_air4",
+        "pitch": 1.3,
+        "volume": 0.5
+      }
+    ]
+  },
+  "entity.lakitu.hurt": {
+    "subtitle": "subtitles.lakitu.lakitu.hurt",
+    "sounds": [
+      {
+        "name": "minecraft:mob/turtle/hurt1",
+        "pitch": 1.5,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:mob/turtle/hurt2",
+        "pitch": 1.5,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:mob/turtle/hurt3",
+        "pitch": 1.5,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:mob/turtle/hurt4",
+        "pitch": 1.5,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:mob/turtle/hurt5",
+        "pitch": 1.5,
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.lakitu.death": {
+    "subtitle": "subtitles.lakitu.lakitu.death",
+    "sounds": [
+      {
+        "name": "minecraft:mob/turtle/death1",
+        "pitch": 1.4,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:mob/turtle/death2",
+        "pitch": 1.4,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:mob/turtle/death3",
+        "pitch": 1.4,
+        "volume": 1.0
+      }
+    ]
+  },
+  "entity.spiny_egg.throw": {
+    "subtitle": "subtitles.lakitu.spiny_egg.throw",
+    "sounds": [
+      {
+        "name": "minecraft:mob/slime/small1",
+        "pitch": 1.7,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/slime/small2",
+        "pitch": 1.7,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/slime/small3",
+        "pitch": 1.7,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/slime/small4",
+        "pitch": 1.7,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/slime/small5",
+        "pitch": 1.7,
+        "volume": 0.8
+      }
+    ]
+  },
+  "entity.spiny_egg.crack": {
+    "subtitle": "subtitles.lakitu.spiny_egg.crack",
+    "sounds": [
+      {
+        "name": "minecraft:mob/turtle/egg/egg_break1",
+        "pitch": 1.4,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/turtle/egg/egg_break2",
+        "pitch": 1.4,
+        "volume": 0.8
+      }
+    ]
+  },
+  "entity.lakitu_cloud.summon": {
+    "subtitle": "subtitles.lakitu.lakitu_cloud.summon",
+    "sounds": [
+      {
+        "name": "minecraft:mob/pufferfish/blow_up1",
+        "pitch": 1.3,
+        "volume": 0.6
+      },
+      {
+        "name": "minecraft:mob/pufferfish/blow_up2",
+        "pitch": 1.3,
+        "volume": 0.6
+      }
+    ]
+  },
+  "entity.lakitu_cloud.dismiss": {
+    "subtitle": "subtitles.lakitu.lakitu_cloud.dismiss",
+    "sounds": [
+      {
+        "name": "minecraft:mob/pufferfish/blow_out1",
+        "pitch": 1.3,
+        "volume": 0.7
+      },
+      {
+        "name": "minecraft:mob/pufferfish/blow_out2",
+        "pitch": 1.3,
+        "volume": 0.7
+      }
+    ]
+  },
+  "entity.lakitu_cloud.hurt": {
+    "subtitle": "subtitles.lakitu.lakitu_cloud.hurt",
+    "sounds": [
+      {
+        "name": "minecraft:mob/breeze/hurt1",
+        "pitch": 1.4,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/breeze/hurt2",
+        "pitch": 1.4,
+        "volume": 0.8
+      },
+      {
+        "name": "minecraft:mob/breeze/hurt3",
+        "pitch": 1.4,
+        "volume": 0.8
+      }
+    ]
+  },
+  "entity.lakitu_cloud.death": {
+    "subtitle": "subtitles.lakitu.lakitu_cloud.death",
+    "sounds": [
+      {
+        "name": "minecraft:entity/wind_charge/wind_burst1",
+        "pitch": 1.5,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:entity/wind_charge/wind_burst2",
+        "pitch": 1.5,
+        "volume": 1.0
+      },
+      {
+        "name": "minecraft:entity/wind_charge/wind_burst3",
+        "pitch": 1.5,
+        "volume": 1.0
+      }
+    ]
+  }
+}

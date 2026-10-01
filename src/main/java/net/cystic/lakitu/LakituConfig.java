@@ -22,7 +22,7 @@ public final class LakituConfig {
     public static LakituConfig values = new LakituConfig();
 
     /** Bumped when a default changes, so {@link #migrate} can update files that still hold the old default. */
-    private static final int CURRENT_VERSION = 2;
+    private static final int CURRENT_VERSION = 3;
     /** Files from before versioning read as 0. */
     public int configVersion = 0;
 
@@ -66,7 +66,7 @@ public final class LakituConfig {
     public double testLaunchFadeSeconds = 1.0;
 
     // --- Lakitu (mob) -----------------------------------------------------------------------------
-    public double lakituMaxHealth = 20.0;
+    public double lakituMaxHealth = 30.0;
     /** Scaled by difficulty like other mob projectiles: 3.5 on Easy, 5 on Normal, 7.5 on Hard. */
     public double lakituSpinyEggDamage = 5.0;
     public double lakituThrowIntervalSeconds = 2.0;
@@ -75,11 +75,14 @@ public final class LakituConfig {
     public boolean lakituRetaliatesAgainstRiders = true;
     /** Natural spawns only at or above this Y (mountain height). */
     public int lakituSpawnMinY = 128;
-    /** Chance that a natural spawn attempt that passed every other check goes ahead. */
-    public double lakituSpawnChance = 0.1;
-    /** Cloud item drop when killed by a player: like a wither skeleton skull, 2.5% + 1% per Looting level. */
-    public double lakituCloudDropChance = 0.025;
-    public double lakituCloudDropChancePerLooting = 0.01;
+    /**
+     * Chance that a natural spawn attempt that passed every other check goes ahead. 0.8 makes a Lakitu about as likely
+     * at a mountain-top spot as a ghast is in Nether Wastes (weight 10 of ~525 × 0.8 vs ghast 50 of 168 × 1/20).
+     */
+    public double lakituSpawnChance = 0.8;
+    /** Cloud item drop when killed by a player: 10% + 2% per Looting level. */
+    public double lakituCloudDropChance = 0.1;
+    public double lakituCloudDropChancePerLooting = 0.02;
     /** Spiny eggs dropped on death, whoever killed it: min to max, plus this many per Looting level. */
     public int lakituSpinyEggDropMin = 2;
     public int lakituSpinyEggDropMax = 4;
@@ -111,6 +114,16 @@ public final class LakituConfig {
     private void migrate() {
         if (this.configVersion < 2 && this.lakituSpinyEggDamage == 2.0)
             this.lakituSpinyEggDamage = 5.0;
+        if (this.configVersion < 3) {
+            if (this.lakituMaxHealth == 20.0)
+                this.lakituMaxHealth = 30.0;
+            if (this.lakituSpawnChance == 0.1)
+                this.lakituSpawnChance = 0.8;
+            if (this.lakituCloudDropChance == 0.025)
+                this.lakituCloudDropChance = 0.1;
+            if (this.lakituCloudDropChancePerLooting == 0.01)
+                this.lakituCloudDropChancePerLooting = 0.02;
+        }
         this.configVersion = CURRENT_VERSION;
     }
 

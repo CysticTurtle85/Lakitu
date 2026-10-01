@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
+import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
@@ -12,7 +13,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.StringUtil;
@@ -109,7 +109,7 @@ public class LakituCloudItem extends Item {
         // Summoning and dismissing share a short per-cloud cooldown, applied by vanilla after a successful use.
         stack.set(DataComponents.USE_COOLDOWN, new UseCooldown((float) config.cloudUseCooldownSeconds, Optional.of(CloudData.cooldownGroup(cloudId))));
         serverLevel.sendParticles(ParticleTypes.CLOUD, cloud.getX(), cloud.getY() + 0.4, cloud.getZ(), 24, 0.6, 0.25, 0.6, 0.02);
-        level.playSound(null, cloud.getX(), cloud.getY(), cloud.getZ(), SoundEvents.HARNESS_GOGGLES_DOWN, SoundSource.PLAYERS, 1.0F, 1.0F);
+        level.playSound(null, cloud.getX(), cloud.getY(), cloud.getZ(), LakituSounds.CLOUD_SUMMON, SoundSource.PLAYERS, 1.0F, 1.0F);
         return InteractionResult.SUCCESS;
     }
 

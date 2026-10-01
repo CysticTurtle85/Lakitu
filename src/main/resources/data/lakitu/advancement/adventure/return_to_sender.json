@@ -1,0 +1,36 @@
+{
+  "parent": "lakitu:adventure/head_in_the_clouds",
+  "display": {
+    "icon": {
+      "id": "lakitu:spiny_egg"
+    },
+    "title": {
+      "translate": "advancements.lakitu.return_to_sender.title"
+    },
+    "description": {
+      "translate": "advancements.lakitu.return_to_sender.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "hit_lakitu": {
+      "trigger": "minecraft:player_hurt_entity",
+      "conditions": {
+        "entity": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:entity_type": "lakitu:lakitu"
+          }
+        },
+        "damage": {
+          "type": {
+            "direct_entity": {
+              "minecraft:entity_type": "lakitu:spiny_egg"
+            }
+          }
+        }
+      }
+    }
+  }
+}

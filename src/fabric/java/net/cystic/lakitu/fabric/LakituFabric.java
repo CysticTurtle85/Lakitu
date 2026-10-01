@@ -3,6 +3,7 @@ package net.cystic.lakitu.fabric;
 import java.util.function.Function;
 import net.cystic.lakitu.CloudSpeedEffect;
 import net.cystic.lakitu.Lakitu;
+import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
 import net.cystic.lakitu.entity.SpinyEggEntity;
@@ -22,6 +23,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.Entity;
@@ -41,6 +43,9 @@ public class LakituFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         Lakitu.init(FabricLoader.getInstance().getConfigDir());
+
+        for (SoundEvent sound : LakituSounds.ALL)
+            Registry.register(BuiltInRegistries.SOUND_EVENT, sound.location(), sound);
 
         DataComponentType<CloudData> cloudData = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Lakitu.id("cloud"), CloudData.createType());
         Lakitu.cloudData = () -> cloudData;

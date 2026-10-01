@@ -1,0 +1,29 @@
+{
+  "parent": "minecraft:adventure/root",
+  "display": {
+    "icon": {
+      "id": "lakitu:lakitu_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.lakitu.lakitu_down.title"
+    },
+    "description": {
+      "translate": "advancements.lakitu.lakitu_down.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "killed_lakitu": {
+      "trigger": "minecraft:player_killed_entity",
+      "conditions": {
+        "entity": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:entity_type": "lakitu:lakitu"
+          }
+        }
+      }
+    }
+  }
+}

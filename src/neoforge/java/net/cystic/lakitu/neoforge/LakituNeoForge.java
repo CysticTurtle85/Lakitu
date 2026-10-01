@@ -2,6 +2,7 @@ package net.cystic.lakitu.neoforge;
 
 import net.cystic.lakitu.CloudSpeedEffect;
 import net.cystic.lakitu.Lakitu;
+import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
 import net.cystic.lakitu.entity.SpinyEggEntity;
@@ -11,6 +12,7 @@ import net.cystic.lakitu.item.SpinyEggItem;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.EntityType;
@@ -39,6 +41,12 @@ public class LakituNeoForge {
     private static final DeferredRegister.Entities ENTITIES = DeferredRegister.createEntities(Lakitu.MOD_ID);
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Lakitu.MOD_ID);
     private static final DeferredRegister<MobEffect> EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, Lakitu.MOD_ID);
+    private static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(Registries.SOUND_EVENT, Lakitu.MOD_ID);
+
+    static {
+        for (SoundEvent sound : LakituSounds.ALL)
+            SOUNDS.register(sound.location().getPath(), () -> sound);
+    }
 
     private static final DeferredHolder<DataComponentType<?>, DataComponentType<CloudData>> CLOUD_DATA = COMPONENTS.register("cloud", CloudData::createType);
     private static final DeferredHolder<EntityType<?>, EntityType<LakituCloudEntity>> CLOUD = ENTITIES.register("lakitu_cloud",
@@ -72,6 +80,7 @@ public class LakituNeoForge {
         ENTITIES.register(modBus);
         ITEMS.register(modBus);
         EFFECTS.register(modBus);
+        SOUNDS.register(modBus);
         modBus.addListener(LakituNeoForge::createAttributes);
         modBus.addListener(LakituNeoForge::registerSpawnPlacements);
         modBus.addListener(LakituNeoForge::addToCreativeTabs);

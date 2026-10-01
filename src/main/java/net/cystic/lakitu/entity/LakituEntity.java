@@ -4,6 +4,7 @@ import java.util.EnumSet;
 import java.util.UUID;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
+import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.RainCloud;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -12,7 +13,6 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -93,7 +93,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 20.0)
+                .add(Attributes.MAX_HEALTH, 30.0)
                 .add(Attributes.FOLLOW_RANGE, 48.0)
                 .add(Attributes.FLYING_SPEED, 0.06);
     }
@@ -208,7 +208,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         double arc = Math.sqrt(dx * dx + dz * dz) * 0.2;
         Projectile.spawnProjectile(egg, level, ItemStack.EMPTY,
                 projectile -> projectile.shoot(dx, target.getEyeY() - 1.1 + arc - projectile.getY(), dz, 1.6F, 4.0F));
-        this.playSound(SoundEvents.EGG_THROW, 1.0F, 0.4F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+        this.playSound(LakituSounds.SPINY_EGG_THROW, 1.0F, 0.9F + this.getRandom().nextFloat() * 0.2F);
     }
 
     @Override
@@ -255,12 +255,17 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
 
     @Override
     protected SoundEvent getHurtSound(DamageSource source) {
-        return SoundEvents.GHASTLING_HURT;
+        return LakituSounds.LAKITU_HURT;
     }
 
     @Override
     protected SoundEvent getDeathSound() {
-        return SoundEvents.GHASTLING_DEATH;
+        return LakituSounds.LAKITU_DEATH;
+    }
+
+    @Override
+    protected SoundEvent getAmbientSound() {
+        return LakituSounds.LAKITU_AMBIENT;
     }
 
     // --- GeckoLib -----------------------------------------------------------------------------

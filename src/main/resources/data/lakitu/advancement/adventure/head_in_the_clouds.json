@@ -1,0 +1,31 @@
+{
+  "parent": "lakitu:adventure/lakitu_down",
+  "display": {
+    "icon": {
+      "id": "lakitu:lakitu_cloud"
+    },
+    "title": {
+      "translate": "advancements.lakitu.head_in_the_clouds.title"
+    },
+    "description": {
+      "translate": "advancements.lakitu.head_in_the_clouds.description"
+    },
+    "frame": "task"
+  },
+  "criteria": {
+    "rode_cloud": {
+      "trigger": "minecraft:started_riding",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:vehicle": {
+              "minecraft:entity_type": "lakitu:lakitu_cloud"
+            }
+          }
+        }
+      }
+    }
+  }
+}

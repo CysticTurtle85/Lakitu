@@ -14,8 +14,15 @@
 - Rain and water no longer hurt the cloud or the Lakitu: the cloud turns into a grey rain cloud and flies at half
   speed (stacking with altitude), with a Rain Cloud effect on the rider.
 - Altitude speed is fixed in the Nether (0.5×) and the End (3×).
-- Spiny Eggs for cloud riders: throw them from a Lakitu Cloud (5 damage, one per second). Lakitus drop 2–4 (+1 per
-  Looting); Egg + Cactus + Red Dye makes 2.
+- Spiny Eggs for cloud riders: throw them from a Lakitu Cloud (5 damage, one per second; the tooltip shows the
+  damage). Lakitus drop 2–4 (+1 per Looting); Egg + Cactus + Red Dye makes 2.
+- Lakitus: 30 health (was 20), about as common on mountain tops as ghasts are in the Nether (spawn chance 80%, was
+  10%), and drop their cloud 10% of the time (+2% per Looting; was 2.5% + 1%). Old config files are updated.
+- You bob up and down with the cloud while riding it.
+- Shorter message when you mount: "Use the Lakitu Cloud again to dismount. You can now throw Spiny Eggs".
+- Four advancements in the Adventure tab: Lakitu Down, Head in the Clouds, Sky High, Return to Sender.
+- Mario-style sounds (made from vanilla sounds) with subtitles for the Lakitu, its cloud and spiny eggs.
+- New item icons: the cloud with its face, a spikier Spiny Egg, a Lakitu-coloured spawn egg.
 
 ## 0.1.0
 - First playable build, Minecraft 26.3 on Fabric (and Quilt) and NeoForge.

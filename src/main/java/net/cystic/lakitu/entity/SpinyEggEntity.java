@@ -2,11 +2,11 @@ package net.cystic.lakitu.entity;
 
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
+import net.cystic.lakitu.LakituSounds;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -78,7 +78,7 @@ public class SpinyEggEntity extends ThrowableProjectile implements GeoEntity {
             // Cracks open: shell bits and a crunch.
             level.sendParticles(new DustParticleOptions(0xD62020, 1.2F), this.getX(), this.getY() + 0.2, this.getZ(), 10, 0.15, 0.15, 0.15, 0.0);
             level.sendParticles(ParticleTypes.CRIT, this.getX(), this.getY() + 0.2, this.getZ(), 6, 0.1, 0.1, 0.1, 0.2);
-            this.playSound(SoundEvents.TURTLE_EGG_CRACK, 0.8F, 1.2F + this.random.nextFloat() * 0.2F);
+            this.playSound(LakituSounds.SPINY_EGG_CRACK, 1.0F, 0.9F + this.random.nextFloat() * 0.2F);
             this.discard();
         }
     }

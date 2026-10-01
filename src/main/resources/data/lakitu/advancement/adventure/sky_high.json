@@ -1,0 +1,39 @@
+{
+  "parent": "lakitu:adventure/head_in_the_clouds",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "advancements.lakitu.sky_high.title"
+    },
+    "description": {
+      "translate": "advancements.lakitu.sky_high.description"
+    },
+    "frame": "goal"
+  },
+  "criteria": {
+    "at_build_limit": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:vehicle": {
+              "minecraft:entity_type": "lakitu:lakitu_cloud"
+            },
+            "minecraft:location": {
+              "dimension": "minecraft:overworld",
+              "position": {
+                "y": {
+                  "min": 319.0
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
