@@ -280,7 +280,8 @@ subprojects {
         projectId = modrinthProject
         versionNumber = "$modVersion+$mc-$loader"
         versionName = "${rootProject.property("mod_name")} $modVersion ($loaderName $mc)"
-        versionType = "beta"
+        // release, beta or alpha (gradle.properties `release_type`, default release).
+        versionType = (rootProject.findProperty("release_type") as String?) ?: "release"
         uploadFile.set(releaseJar)
         this.gameVersions.addAll(gameVersions)
         loaders.addAll(if (loader == "fabric") listOf("fabric", "quilt") else listOf(loader))

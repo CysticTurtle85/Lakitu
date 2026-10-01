@@ -410,8 +410,30 @@ def dimensions(game):
     game.shot("7-nether")
 
 
+def recipe_shot(game):
+    """Screenshot for the mod page: the Spiny Egg recipe laid out in a real crafting table (not part of the checks)."""
+    game.run("tp @a 0.5 -60 0.5 0 50")
+    game.run("setblock 0 -60 1 minecraft:crafting_table")
+    game.run("clear @a")
+    for slot, item in enumerate(("minecraft:egg", "minecraft:cactus", "minecraft:red_dye")):
+        game.run(f"item replace entity @a hotbar.{slot} with {item}")
+    time.sleep(1.5)
+    game.drive("useblock")
+    time.sleep(1.5)
+    # Crafting menu: 0 result, 1-9 grid, 10-36 inventory, 37-45 hotbar. Middle row of the grid: 4, 5, 6.
+    for src, dst in ((37, 4), (38, 5), (39, 6)):
+        game.drive(f"click {src}")
+        time.sleep(0.4)
+        game.drive(f"click {dst}")
+        time.sleep(0.4)
+    time.sleep(1.5)
+    game.shot("8-recipe")
+    game.drive("close")
+    game.run("setblock 0 -60 1 minecraft:air")
+
+
 PARTS = [lakitu_model, summon, flight, altitude, rider_eggs, dismount, cloud_health, rain, cloud_death, lakitu_ai,
-         lakitu_drops, spiny_egg_model, dimensions]
+         lakitu_drops, spiny_egg_model, dimensions, recipe_shot]
 
 if __name__ == "__main__":
     mctest.main(PARTS)

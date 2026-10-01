@@ -1,6 +1,13 @@
 # Changelog
 
-## 1.0.0 (first release)
+## 1.0.0
+First release for Minecraft 26.3 (Fabric, Quilt, NeoForge):
+- Lakitus, found high in the mountains, throw Spiny Eggs at players on foot and leave cloud riders alone unless hit.
+- Lakitu Cloud: a rideable cloud that flies faster the higher you go, slows in rain, and heals over time.
+- Spiny Eggs to throw from your cloud, dropped by Lakitus or crafted from an Egg, Cactus and Red Dye.
+- 4 advancements; every number configurable in config/lakitu.json.
+
+## Development notes (before 1.0.0)
 - The cloud now also heals while you ride it (1 health every 10 s), and the item's health bar fills up live while
   it's stowed.
 - New mod icon.
