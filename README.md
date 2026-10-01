@@ -42,6 +42,8 @@ Release jars land in `build/dist/`. Each folder in `targets/` is one Minecraft v
 - `tools/smoke_test.py <target>` runs an automated in-game test (Windows): a real server with the release jar, a dev
   client driven by the dev-only test driver (`src/testdriver`), RCON checks and screenshots in `tools/smoke/`.
 
+Unofficial fan-made mod, not affiliated with Nintendo; Lakitu is inspired by the Mario games.
+
 ## License
 
 [MIT](LICENSE) © CysticTurtle85

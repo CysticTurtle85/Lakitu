@@ -21,7 +21,7 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 | Ownership | Anyone holding the item can use it. The cloud seats one player: whoever summoned it. |
 | Summon / dismount | Use the item: cloud appears at your feet and seats you. Use it again while riding: cloud goes back into the item. Shift never dismounts (it sinks). |
 | Cooldowns | 1 s after summoning or dismissing (per cloud). **30 seconds** after the cloud dies (changed from the handoff's 10 minutes); it then comes back at **full health**. |
-| Health | 40 HP, stored on the item as a fraction; heals 1 HP / 10 s while stowed (computed on next summon). |
+| Health | 40 HP, stored on the item as a fraction; heals 1 HP / 10 s while stowed, and (**author, 2026-10-01**) the same while ridden. The item's bar and tooltip update live while stowed (written into the item once a second). |
 | Unridden cloud | Never exists: if it loses its rider (death, teleport, item leaves the inventory) it vanishes and its health goes back on the item. "Baby ghast logic" = the floaty, drift-to-a-stop flying feel. |
 | Disconnect | **Assumption (changed from "vanish"):** the cloud leaves the world with its rider but is kept in their player data, like a horse, so they log back in still riding instead of falling from the sky. Vanilla also refuses to let players ride entities that can't be saved. The Altitude effect is saved with the player and kept up to date by the cloud. |
 | Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude speed follows the new dimension's height rules straight away. Tested: Nether portal. |
@@ -122,6 +122,18 @@ pufferfish puffing up/down; cloud hurt/death = breeze hurt and a wind burst.
 
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
 - Mod icon: simple pixel art drawn in code. Altitude and Rain Cloud effect icons: 18×18, drawn in code.
+
+## Release and Modrinth page (author, 2026-10-01)
+
+| Topic | Decision |
+|---|---|
+| Title | Lakitu (slug `lakitu`, free on Modrinth). |
+| Summary | "Lakitus now haunt the mountains. Beat one, take its cloud, and rule the skies." (also the in-game description) |
+| Version | 1.0.0, a full release. |
+| Mod icon | Generated design 2 (side view leaning over the cloud, Spiny Egg, sunset), pixelated to 64 px with a 28-colour palette (`art/icon/`: source image and `pixelate.py`). Same image in game and on Modrinth. Earlier code-drawn candidates were rejected: "same head shape same hair same glasses... each picture should be different", and real Lakitu's goggles have clear glass, no white. |
+| Page | Generated in one go in Mining Helmet's format (`art/modrinth/page.md`); the author edits after the mockup. Includes "Unofficial fan-made mod, not affiliated with Nintendo." |
+| Recipe picture | Drawn crafting grid (`art/recipe/make_recipe.py`). |
+| Gallery | The author's 9 shader screenshots in `media/` (not in git); order, featured image and captions chosen by me in `art/modrinth/gallery.json`, to change after the mockup. |
 
 ## Item icons
 

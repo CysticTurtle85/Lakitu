@@ -31,6 +31,9 @@ public final class LakituConfig {
     /** Health regained while the cloud is stowed in its item, per {@link #cloudStowedHealIntervalSeconds}. */
     public double cloudStowedHealAmount = 1.0;
     public double cloudStowedHealIntervalSeconds = 10.0;
+    /** Health regained while riding, per {@link #cloudRiddenHealIntervalSeconds} (author: same as stowed). */
+    public double cloudRiddenHealAmount = 1.0;
+    public double cloudRiddenHealIntervalSeconds = 10.0;
     /** Blocks per second at full input at sea level, before altitude, Speed and Slowness. */
     public double cloudHorizontalSpeed = 8.0;
     public double cloudVerticalSpeed = 5.0;

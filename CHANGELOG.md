@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 (first release)
+- The cloud now also heals while you ride it (1 health every 10 s), and the item's health bar fills up live while
+  it's stowed.
+- New mod icon.
 - New Minecraft-style models and texture for the Lakitu and Lakitu's Cloud, modelled on the Nintendo designs
   (goggles, hair strands, green shell, hands gripping a smiling cloud).
 - Hitboxes follow the new models: cloud 1.25 × 0.75 blocks, Lakitu 1.25 × 2 blocks (eyes at 1.45).

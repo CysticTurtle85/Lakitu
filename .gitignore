@@ -47,3 +47,6 @@ runs/
 tools/smoke/
 __pycache__/
 tools/smoke-run-*.txt
+
+# Screenshots for the Modrinth gallery (uploaded there, not kept in git)
+media/

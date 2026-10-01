@@ -261,6 +261,16 @@ def cloud_health(game):
     back = game.data(CLOUD_SEL, "Health")
     game.values["cloud health after re-summon"] = back
     game.check("cloud comes back at ~30", back is not None and 29.5 <= back <= 31.0)
+    # It heals 1 health every 10 s while ridden, and while stowed the item's health rises live (bar and tooltip).
+    time.sleep(11)
+    ridden = game.data(CLOUD_SEL, "Health")
+    game.use()
+    stowed = game.data(PLAYER, f"{HELD}.health")
+    time.sleep(12)
+    later = game.data(PLAYER, f"{HELD}.health")
+    game.values.update({"cloud health after 11 s riding": ridden, "item health stowed, then 12 s later": [stowed, later]})
+    game.check("heals while riding (+1 in 10 s)", ridden is not None and back is not None and ridden >= back + 0.9)
+    game.check("item health rises while stowed", stowed is not None and later is not None and later > stowed + 0.01)
 
 
 def rain(game):

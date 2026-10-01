@@ -218,6 +218,11 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
         if (this.tickCount == 5)
             rider.sendOverlayMessage(Component.translatable("message.lakitu.cloud_controls"));
 
+        // It heals slowly while ridden too.
+        LakituConfig healing = LakituConfig.values;
+        if (this.tickCount % Math.max(1, LakituConfig.ticks(healing.cloudRiddenHealIntervalSeconds)) == 0 && this.getHealth() < this.getMaxHealth())
+            this.heal((float) healing.cloudRiddenHealAmount);
+
         // Keep the item up to date while riding: a disconnect saves the player before the cloud is removed.
         float fraction = this.getHealth() / this.getMaxHealth();
         if (this.isAlive() && Math.abs(fraction - this.savedHealth) > 0.001F)

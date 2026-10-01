@@ -121,6 +121,14 @@ public class LakituCloudItem extends Item {
         applyPendingDeath(stack, level);
         // Item cooldowns aren't saved, so restore the re-forming overlay after a relog.
         CloudData data = data(stack);
+        // While stowed it heals: write that into the item once a second so the bar and tooltip move.
+        long now = level.getGameTime();
+        if (now % 20 == 0 && data.health() < 1.0F && !data.isReforming(now)
+                && data.cloudId().map(id -> !LakituCloudEntity.isOut(id)).orElse(true)) {
+            float healed = data.healthAt(now);
+            if (healed > data.health() + 0.001F)
+                stack.set(Lakitu.cloudData.get(), data = data.withHealth(healed, now));
+        }
         if (level.getGameTime() % 20 == 0 && data.isReforming(level.getGameTime()) && data.cloudId().isPresent() && !player.getCooldowns().isOnCooldown(stack))
             player.getCooldowns().addCooldown(CloudData.cooldownGroup(data.cloudId().get()), (int) (data.reformsAt() - level.getGameTime()));
     }
