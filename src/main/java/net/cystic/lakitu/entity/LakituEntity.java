@@ -4,8 +4,12 @@ import java.util.EnumSet;
 import java.util.UUID;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
+import net.cystic.lakitu.RainCloud;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -18,6 +22,8 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.MoveControl;
@@ -46,10 +52,13 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
  * A Lakitu on its cloud: one entity, one joined model. Floats around like a ghast and throws spiny eggs at
- * players, except players riding a Lakitu Cloud, whom it leaves alone unless they hit it.
- * Rain and lava hurt it like the mount. Killed by a player, it sometimes drops a Lakitu Cloud.
+ * players, except players riding a Lakitu Cloud, whom it leaves alone unless they hit it. Like the mount, rain or
+ * water turns its cloud into a grey, slower rain cloud, and lava burns it. It drops spiny eggs, and killed by a
+ * player it sometimes drops a Lakitu Cloud.
  */
 public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEntity {
+    /** Rained on or in water (for a moment after, too): grey and slower. Set by the server. */
+    private static final EntityDataAccessor<Boolean> DATA_RAIN_CLOUD = SynchedEntityData.defineId(LakituEntity.class, EntityDataSerializers.BOOLEAN);
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
     private static final RawAnimation THROW = RawAnimation.begin().thenPlay("throw");
     /** From the start of the "throw" animation to the frame where the egg leaves the hand (0.5 s). */
@@ -67,6 +76,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     /** Ticks until the egg of the throw in progress leaves the hand (server), and at whom. */
     private int releaseIn;
     private @Nullable LivingEntity throwTarget;
+    private int wetTicks;
 
     public LakituEntity(EntityType<? extends LakituEntity> type, Level level) {
         super(type, level);
@@ -99,6 +109,17 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     }
 
     @Override
+    protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+        super.defineSynchedData(entityData);
+        entityData.define(DATA_RAIN_CLOUD, false);
+    }
+
+    /** Rained on or in water, or was a moment ago: its cloud is grey and it flies slower. */
+    public boolean isRainCloud() {
+        return this.entityData.get(DATA_RAIN_CLOUD);
+    }
+
+    @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(5, new HoverNearTargetGoal(this));
         this.goalSelector.addGoal(6, new Ghast.RandomFloatAroundGoal(this));
@@ -121,10 +142,26 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
             this.performRangedAttack(this.throwTarget, 1.0F);
             this.throwTarget = null;
         }
+    }
 
-        LakituConfig config = LakituConfig.values;
-        if (this.tickCount % LakituConfig.ticks(config.rainDamageIntervalSeconds) == 0 && LakituCloudEntity.isInRain(this))
-            this.hurtServer(level, LakituCloudEntity.rainDamage(level), (float) config.rainDamage);
+    @Override
+    public void tick() {
+        super.tick();
+        // Here rather than in the AI step, so a Lakitu without AI turns grey too.
+        if (!this.level().isClientSide() && this.isAlive()) {
+            this.wetTicks = RainCloud.wetTicks(this.wetTicks, this.isInWaterOrRain());
+            if (this.isRainCloud() != this.wetTicks > 0)
+                this.setRainCloud(this.wetTicks > 0);
+        }
+    }
+
+    /** A rain cloud flies at {@code rainCloudSpeed} of its speed: a transient flying-speed modifier, never saved. */
+    private void setRainCloud(boolean rainCloud) {
+        this.entityData.set(DATA_RAIN_CLOUD, rainCloud);
+        AttributeInstance flyingSpeed = this.getAttribute(Attributes.FLYING_SPEED);
+        flyingSpeed.removeModifier(RainCloud.SLOWDOWN);
+        if (rainCloud)
+            flyingSpeed.addTransientModifier(new AttributeModifier(RainCloud.SLOWDOWN, LakituConfig.values.rainCloudSpeed - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
     }
 
     @Override
@@ -177,13 +214,16 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     @Override
     protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean killedByPlayer) {
         super.dropCustomDeathLoot(level, source, killedByPlayer);
-        if (!killedByPlayer)
-            return;
         LakituConfig config = LakituConfig.values;
         int looting = source.getEntity() instanceof LivingEntity killer
                 ? EnchantmentHelper.getEnchantmentLevel(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.LOOTING), killer)
                 : 0;
-        if (this.getRandom().nextDouble() < config.lakituCloudDropChance + config.lakituCloudDropChancePerLooting * looting)
+        // Spiny eggs whoever killed it: 2-4, +1 per Looting level.
+        int eggs = Mth.nextInt(this.getRandom(), config.lakituSpinyEggDropMin, Math.max(config.lakituSpinyEggDropMin, config.lakituSpinyEggDropMax))
+                + config.lakituSpinyEggDropPerLooting * looting;
+        if (eggs > 0)
+            this.spawnAtLocation(level, new ItemStack(Lakitu.spinyEggItem.get(), eggs));
+        if (killedByPlayer && this.getRandom().nextDouble() < config.lakituCloudDropChance + config.lakituCloudDropChancePerLooting * looting)
             this.spawnAtLocation(level, new ItemStack(Lakitu.cloudItem.get()));
     }
 

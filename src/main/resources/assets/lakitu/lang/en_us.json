@@ -5,12 +5,15 @@
   "item.lakitu.lakitu_spawn_egg": "Lakitu Spawn Egg",
   "entity.lakitu.lakitu": "Lakitu",
   "entity.lakitu.lakitu_cloud": "Lakitu Cloud",
-  "message.lakitu.cloud_controls": "Space to rise, Shift to sink. Use the Lakitu Cloud again to dismount",
+  "message.lakitu.cloud_controls": "Space to rise, Shift to sink, Spiny Eggs to throw. Use the Lakitu Cloud again to dismount",
   "message.lakitu.cloud_reforming": "Your cloud is re-forming (%s left)",
   "message.lakitu.cloud_in_use": "This cloud is already out",
-  "death.attack.lakitu.rain": "%1$s melted in the rain",
-  "death.attack.lakitu.rain.player": "%1$s melted in the rain while fighting %2$s",
   "entity.lakitu.spiny_egg": "Spiny Egg",
   "effect.lakitu.altitude": "Altitude",
-  "effect.lakitu.altitude.speed": "%s× cloud speed"
+  "item.lakitu.lakitu_cloud.spiny_eggs": "While riding, you can throw Spiny Eggs",
+  "item.lakitu.spiny_egg": "Spiny Egg",
+  "item.lakitu.spiny_egg.riders_only": "Throw while riding a Lakitu Cloud",
+  "message.lakitu.spiny_egg_riders_only": "Spiny Eggs can only be thrown from a Lakitu Cloud",
+  "effect.lakitu.rain_cloud": "Rain Cloud",
+  "effect.lakitu.cloud_speed": "%s× cloud speed"
 }

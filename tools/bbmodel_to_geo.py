@@ -8,6 +8,8 @@ For every entry in art/models.json it reads a box-UV "GeckoLib Animated Model" .
 writes
   src/main/resources/assets/<mod>/geo/entity/<name>.geo.json   (the build moves it to geckolib/models/ for GeckoLib 5)
   src/main/resources/assets/<mod>/textures/entity/<name>.png   (the project's first texture)
+  src/main/resources/assets/<mod>/textures/entity/<name>_<variant>.png   (for "variants": {"rain": "lakitu_rain.png"},
+      the project's texture with that name: a second look on the same UVs, chosen by the renderer)
 Several models can come from one project by leaving groups out. Groups or cubes hidden in Blockbench (eye icon off)
 or set not to export are left out too, so old parts can stay in the project for reference.
 
@@ -22,8 +24,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MOD_ID = dict(l.split("=", 1) for l in (ROOT / "gradle.properties").read_text().splitlines() if "=" in l and not l.startswith("#"))["mod_id"]
 ASSETS = ROOT / "src/main/resources/assets" / MOD_ID
-# [{"source": "art/thing.bbmodel", "name": "thing", "skip_groups": []}, ...]
-MODELS = [(m["source"], m["name"], m.get("skip_groups", [])) for m in json.loads((ROOT / "art/models.json").read_text(encoding="utf-8"))["models"]]
+# [{"source": "art/thing.bbmodel", "name": "thing", "skip_groups": [], "variants": {"suffix": "texture name"}}, ...]
+MODELS = [(m["source"], m["name"], m.get("skip_groups", []), m.get("variants", {}))
+          for m in json.loads((ROOT / "art/models.json").read_text(encoding="utf-8"))["models"]]
 
 
 def mirror_point(p):
@@ -109,9 +112,11 @@ def export(model, skip_groups):
     }
 
 
-def write_texture(model, project, out):
-    """The project's first texture: embedded in the .bbmodel, or a file next to it."""
-    texture = model["textures"][0]
+def write_texture(model, project, out, name=None):
+    """The project's first texture (or the one called `name`): embedded in the .bbmodel, or a file next to it."""
+    texture = model["textures"][0] if name is None else next((t for t in model["textures"] if t.get("name") == name), None)
+    if texture is None:
+        raise FileNotFoundError(f"no texture called {name} in {project.name}")
     source = texture.get("source", "")
     if source.startswith("data:image/png;base64,"):
         out.write_bytes(base64.b64decode(source.split(",", 1)[1]))
@@ -130,14 +135,16 @@ def cube_count(geo):
 def main():
     (ASSETS / "geo/entity").mkdir(parents=True, exist_ok=True)
     (ASSETS / "textures/entity").mkdir(parents=True, exist_ok=True)
-    for source, name, skip in MODELS:
+    for source, name, skip, variants in MODELS:
         project = ROOT / source
         model = json.loads(project.read_text(encoding="utf-8"))
         geo = export(model, set(skip))
         (ASSETS / f"geo/entity/{name}.geo.json").write_text(json.dumps(geo, indent=2) + "\n", encoding="utf-8")
         write_texture(model, project, ASSETS / f"textures/entity/{name}.png")
+        for suffix, texture_name in variants.items():
+            write_texture(model, project, ASSETS / f"textures/entity/{name}_{suffix}.png", texture_name)
         bones = [b["name"] for b in geo["minecraft:geometry"][0]["bones"]]
-        print(f"{name}: {cube_count(geo)} cubes, bones {bones}")
+        print(f"{name}: {cube_count(geo)} cubes, bones {bones}" + (f", texture variants {list(variants)}" if variants else ""))
 
 
 if __name__ == "__main__":

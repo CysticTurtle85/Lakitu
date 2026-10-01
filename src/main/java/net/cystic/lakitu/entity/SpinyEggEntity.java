@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
@@ -23,8 +24,9 @@ import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
- * The spiky egg a Lakitu throws. Arcs like a snowball, hurts whatever it hits ({@code lakituSpinyEggDamage}) and
- * cracks open wherever it lands. It doesn't hatch (yet).
+ * The spiky egg a Lakitu throws, and a cloud rider too (the Spiny Egg item). Arcs like a snowball, hurts whatever it
+ * hits ({@code lakituSpinyEggDamage}, or {@code riderSpinyEggDamage} from a player) and cracks open wherever it lands.
+ * It never hits the thrower's own cloud. It doesn't hatch (yet).
  */
 public class SpinyEggEntity extends ThrowableProjectile implements GeoEntity {
     private static final RawAnimation SPIN = RawAnimation.begin().thenLoop("spin");
@@ -54,10 +56,19 @@ public class SpinyEggEntity extends ThrowableProjectile implements GeoEntity {
     }
 
     @Override
+    protected boolean canHitEntity(Entity entity) {
+        Entity owner = this.getOwner();
+        // Vanilla only spares the owner's vehicle until the egg has left the owner; a rider throwing down would hit it.
+        return super.canHitEntity(entity) && (owner == null || entity != owner.getVehicle());
+    }
+
+    @Override
     protected void onHitEntity(EntityHitResult hitResult) {
         super.onHitEntity(hitResult);
         Entity entity = hitResult.getEntity();
-        entity.hurt(this.damageSources().thrown(this, this.getOwner()), (float) LakituConfig.values.lakituSpinyEggDamage);
+        LakituConfig config = LakituConfig.values;
+        double damage = this.getOwner() instanceof Player ? config.riderSpinyEggDamage : config.lakituSpinyEggDamage;
+        entity.hurt(this.damageSources().thrown(this, this.getOwner()), (float) damage);
     }
 
     @Override

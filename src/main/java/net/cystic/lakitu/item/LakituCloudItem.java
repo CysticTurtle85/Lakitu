@@ -164,5 +164,6 @@ public class LakituCloudItem extends Item {
         CloudData data = data(stack);
         builder.accept(Component.translatable("item.lakitu.lakitu_cloud.health", Math.round(data.health() * 100.0F)).withStyle(ChatFormatting.GRAY));
         builder.accept(Component.translatable("item.lakitu.lakitu_cloud.use").withStyle(ChatFormatting.DARK_GRAY));
+        builder.accept(Component.translatable("item.lakitu.lakitu_cloud.spiny_eggs").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

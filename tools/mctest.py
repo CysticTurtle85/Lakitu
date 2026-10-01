@@ -252,8 +252,9 @@ class Game:
         """Sends a command to the dev-only test driver on the client (see src/testdriver)."""
         self.run(f'tellraw @a "mctest {command}"')
 
-    def use(self, wait=1.5):
-        self.drive("use")
+    def use(self, wait=1.5, hand="main"):
+        """hand: main or off (e.g. throw what's in the off hand while the main hand holds a mount's item)."""
+        self.drive("use" if hand == "main" else "use off")
         time.sleep(wait)
 
     def hold(self, key, seconds):

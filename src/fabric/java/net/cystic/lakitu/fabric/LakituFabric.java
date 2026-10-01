@@ -1,13 +1,14 @@
 package net.cystic.lakitu.fabric;
 
 import java.util.function.Function;
-import net.cystic.lakitu.AltitudeEffect;
+import net.cystic.lakitu.CloudSpeedEffect;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
 import net.cystic.lakitu.entity.SpinyEggEntity;
 import net.cystic.lakitu.item.CloudData;
 import net.cystic.lakitu.item.LakituCloudItem;
+import net.cystic.lakitu.item.SpinyEggItem;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
@@ -22,6 +23,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -55,14 +57,21 @@ public class LakituFabric implements ModInitializer {
 
         Item cloudItem = registerItem("lakitu_cloud", LakituCloudItem::new);
         Item spawnEgg = registerItem("lakitu_spawn_egg", properties -> new SpawnEggItem(properties.spawnEgg(lakitu)));
+        Item spinyEggItem = registerItem("spiny_egg", SpinyEggItem::new);
         Lakitu.cloudItem = () -> cloudItem;
         Lakitu.spawnEgg = () -> spawnEgg;
+        Lakitu.spinyEggItem = () -> spinyEggItem;
 
-        Holder<MobEffect> altitude = Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, Lakitu.id("altitude"), new AltitudeEffect());
+        Holder<MobEffect> altitude = Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, Lakitu.id("altitude"),
+                new CloudSpeedEffect(MobEffectCategory.BENEFICIAL, 0x9ED8FF));
+        Holder<MobEffect> rainCloud = Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, Lakitu.id("rain_cloud"),
+                new CloudSpeedEffect(MobEffectCategory.HARMFUL, 0x767D88));
         Lakitu.altitudeEffect = () -> altitude;
+        Lakitu.rainCloudEffect = () -> rainCloud;
 
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> output.insertAfter(Items.SADDLE, cloudItem));
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.SPAWN_EGGS).register(output -> output.insertAfter(Items.GHAST_SPAWN_EGG, spawnEgg));
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT).register(output -> output.insertAfter(Items.BLUE_EGG, spinyEggItem));
 
         BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER, lakitu, SPAWN_WEIGHT, 1, 1);
     }

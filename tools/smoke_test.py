@@ -3,9 +3,11 @@
     python tools/smoke_test.py 26.3-fabric 26.3-neoforge
 
 Summon + ride, Space/Shift/W movement, Shift doesn't dismount, altitude speed (the Altitude effect's number, W at
-y~200, Speed II on top), dismount (Slow Falling, effect gone), health saved on the item, rain damage, death cooldown,
-a Lakitu that ignores riders but throws spiny eggs at players on foot (with screenshots of the throw), and riding the
-cloud through a Nether portal (altitude speed there, by the Nether's own sea level). Screenshots go to tools/smoke/.
+y~200, Speed II on top), spiny eggs thrown by a rider (cooldown; not on foot), dismount (Slow Falling, effects gone),
+health saved on the item, rain and water (grey rain cloud at half speed, Rain Cloud effect, no damage; the Lakitu
+too), death cooldown, a Lakitu that ignores riders but throws spiny eggs at players on foot (screenshots of the
+throw) and drops 2-4 spiny eggs, the spiny egg recipe, the End (3x) and riding through a Nether portal (0.5x).
+Screenshots go to tools/smoke/.
 """
 import math
 import re
@@ -21,6 +23,19 @@ PLAYER = "@a[limit=1]"
 HELD = 'Inventory[{Slot:0b}].components."lakitu:cloud"'
 ALTITUDE = 'active_effects[{id:"lakitu:altitude"}].amplifier'
 SHOWS_ALTITUDE = 'execute if entity @a[nbt={active_effects:[{id:"lakitu:altitude"}]}]'
+RAIN_CLOUD = 'active_effects[{id:"lakitu:rain_cloud"}].amplifier'
+SHOWS_RAIN_CLOUD = 'execute if entity @a[nbt={active_effects:[{id:"lakitu:rain_cloud"}]}]'
+OFFHAND_EGGS = "equipment.offhand.count"
+
+
+def wait_until(test, seconds):
+    """Polls test() for up to `seconds` (input sent right after a dimension change lands late)."""
+    end = time.time() + seconds
+    while time.time() < end:
+        if test():
+            return True
+        time.sleep(0.5)
+    return test()
 
 
 def expected_multiplier(y, sea_level, bottom, build_limit):
@@ -69,7 +84,7 @@ def scene(game):
     game.hold("forward", 1.0)
     time.sleep(0.8)
     ahead = cloud_pos()
-    forward = None
+    forward = rise = None
     if game.check("cloud position readable", start and up and down and ahead):
         rise, sink = round(up[1] - start[1], 2), round(up[1] - down[1], 2)
         forward = round(math.dist((down[0], down[2]), (ahead[0], ahead[2])), 2)
@@ -117,6 +132,22 @@ def scene(game):
     game.check("W up high: ~2.4x as far as on the ground", high and forward and 2.0 <= high / forward <= 2.8)
     game.check("Speed II compounds (~1.4x more)", high and boosted and 1.25 <= boosted / high <= 1.55)
 
+    # A rider throws spiny eggs from the off hand: one per second.
+    game.run("kill @e[type=lakitu:spiny_egg]")
+    game.run("item replace entity @a weapon.offhand with lakitu:spiny_egg 16")
+    game.use(wait=0.3, hand="off")
+    thrown = game.count("@e[type=lakitu:spiny_egg]")
+    after_one = game.data(PLAYER, OFFHAND_EGGS)
+    game.use(wait=0.3, hand="off")
+    during_cooldown = game.data(PLAYER, OFFHAND_EGGS)
+    time.sleep(1.0)
+    game.use(wait=0.3, hand="off")
+    after_cooldown = game.data(PLAYER, OFFHAND_EGGS)
+    game.values.update({"spiny eggs flying after a rider's throw": thrown, "eggs left: 1 throw / again at once / after 1 s":
+                        [after_one, during_cooldown, after_cooldown]})
+    game.check("rider throws a spiny egg", thrown >= 1 and after_one == 15)
+    game.check("rider's throws: 1 s cooldown", during_cooldown == 15 and after_cooldown == 14)
+
     # Dismount with the item: Slow Falling, Altitude effect gone.
     slow_falling = 'execute if entity @a[nbt={active_effects:[{id:"minecraft:slow_falling"}]}]'
     game.use()
@@ -124,6 +155,10 @@ def scene(game):
     game.check("dismount: cloud gone", clouds() == 0)
     game.check("dismount: slow falling", game.passed(slow_falling))
     game.check("dismount: altitude effect removed", not game.passed(SHOWS_ALTITUDE))
+    game.run("kill @e[type=lakitu:spiny_egg]")
+    game.use(wait=0.3, hand="off")
+    game.check("on foot: can't throw spiny eggs", game.count("@e[type=lakitu:spiny_egg]") == 0 and game.data(PLAYER, OFFHAND_EGGS) == 14)
+    game.run("item replace entity @a weapon.offhand with minecraft:air")
     game.run("tp @a 0 -60 0 0 0")
     time.sleep(3)
     game.check("landing removes slow falling", not game.passed(slow_falling))
@@ -141,13 +176,37 @@ def scene(game):
     game.values["cloud health after re-summon"] = back
     game.check("cloud comes back at ~30", back is not None and 29.5 <= back <= 31.0)
 
-    # Rain hurts it under open sky.
+    # Rain turns it (and the Lakitu) into a grey rain cloud at half speed, and hurts nothing.
     game.run("weather rain")
-    time.sleep(7)
+    time.sleep(3)
+    game.check("rain: Rain Cloud effect (0.5x)", game.data(PLAYER, RAIN_CLOUD) == 5.0)
+    lakitu_speed = mctest.number(game.run("attribute @e[tag=test_lakitu,limit=1] minecraft:flying_speed get"))
+    game.values["Lakitu flying speed in rain (0.06 dry)"] = lakitu_speed
+    game.check("rain: Lakitu flies at half speed", lakitu_speed is not None and abs(lakitu_speed - 0.03) < 0.001)
+    game.view("THIRD_PERSON_BACK")
+    game.shot("4b-rain-cloud")
+    game.view("FIRST_PERSON")
+    start = cloud_pos()
+    game.hold("jump", 2.0)
+    time.sleep(0.6)
+    end = cloud_pos()
+    wet_rise = round(end[1] - start[1], 2) if start and end else None
+    game.hold("sneak", 1.5)
+    time.sleep(0.6)
     rained = game.data(CLOUD_SEL, "Health")
-    game.values["cloud health after ~6 s rain"] = rained
-    game.check("rain damages cloud", rained is not None and back is not None and rained <= back - 2.0)
+    lakitu_health = game.data("@e[tag=test_lakitu,limit=1]", "Health")
+    game.values.update({"rise (2 s space) in rain": wet_rise, "cloud health after ~7 s rain": rained, "Lakitu health after rain": lakitu_health})
+    game.check("rain: cloud climbs at ~half speed", wet_rise and rise and 0.4 <= wet_rise / rise <= 0.6)
+    game.check("rain: no damage to cloud or Lakitu", rained == back and lakitu_health == 20.0)
     game.run("weather clear")
+    time.sleep(6)  # vanilla rain fades out over ~4 s after the weather clears, then the cloud dries for 1 s
+    game.check("dry again: Rain Cloud effect gone", not game.passed(SHOWS_RAIN_CLOUD))
+    # Water does the same.
+    game.run("execute at @e[type=lakitu:lakitu_cloud,limit=1] run fill ~-1 ~ ~-1 ~1 ~1 ~1 minecraft:water")
+    time.sleep(1.5)
+    game.check("water: Rain Cloud effect", game.data(PLAYER, RAIN_CLOUD) == 5.0)
+    game.run("execute at @e[type=lakitu:lakitu_cloud,limit=1] run fill ~-10 ~-2 ~-10 ~10 ~3 ~10 minecraft:air replace minecraft:water")
+    time.sleep(2)
 
     # A Lakitu ignores a rider...
     game.run("effect give @a minecraft:instant_health 1 5")
@@ -189,8 +248,18 @@ def scene(game):
         game.run("execute as @a at @s facing entity @e[type=lakitu:lakitu,limit=1] feet run tp @s ~ ~ ~ ~ ~")
         game.shot(f"5-throw-{i + 1}")
         time.sleep(0.15)
-    game.run("kill @e[type=lakitu:lakitu]")
     game.run("kill @e[type=lakitu:spiny_egg]")
+    game.run("kill @e[type=item]")
+    game.run("kill @e[type=lakitu:lakitu]")
+    time.sleep(1)
+    dropped = game.data('@e[type=item,limit=1,nbt={Item:{id:"lakitu:spiny_egg"}}]', "Item.count")
+    game.values["spiny eggs dropped by a Lakitu"] = dropped
+    game.check("Lakitu drops 2-4 spiny eggs", dropped is not None and 2 <= dropped <= 4)
+    game.run("kill @e[type=item]")
+    game.run("kill @e[type=lakitu:spiny_egg]")
+    reply = game.run("recipe give @a lakitu:spiny_egg")
+    game.values["recipe give reply"] = reply
+    game.check("spiny egg recipe exists", "nknown" not in reply and "rror" not in reply)
 
     # Close-up of a spiny egg (hanging in the air, no gravity).
     game.run("effect give @a minecraft:instant_health 1 5")
@@ -200,10 +269,20 @@ def scene(game):
     game.shot("6-spiny-egg")
     game.run("kill @e[type=lakitu:spiny_egg]")
 
-    # Ride through a Nether portal: cloud and rider arrive together; altitude speed by the Nether's sea level (32,
-    # bottom 0, build limit 256).
+    # The End: altitude speed is always 3x.
     game.run(f"item replace entity @a weapon.mainhand with {CLOUD}")  # a fresh cloud (the other one is re-forming)
-    game.run("tp @a 0.5 -60 0.5 0 0")
+    game.run("execute in minecraft:the_end run tp @a 0.5 100 0.5 0 0")
+    time.sleep(3)
+    game.use()
+    game.check("End: riding", wait_until(riding, 5))
+    time.sleep(1)
+    end_shown = game.data(PLAYER, ALTITUDE)
+    game.values["Altitude effect in the End (tenths)"] = end_shown
+    game.check("End: altitude effect stuck at 3x", end_shown == 30.0)
+
+    # Ride through a Nether portal: cloud and rider arrive together; in the Nether altitude speed is always 0.5x.
+    game.run("execute in minecraft:overworld run tp @a 0.5 -60 0.5 0 0")
+    time.sleep(3)
     time.sleep(1)
     game.use()
     game.check("portal: riding before", riding())
@@ -218,10 +297,8 @@ def scene(game):
     time.sleep(1)
     nether_y = (cloud_pos() or [0, None])[1]
     shown = game.data(PLAYER, ALTITUDE)
-    wanted = expected_multiplier(nether_y, 32, 0, 256) if nether_y is not None else None
-    game.values.update({"cloud y in the Nether": nether_y, "Altitude effect in the Nether (tenths)": shown,
-                        "expected multiplier in the Nether": wanted and round(wanted, 3)})
-    game.check("portal: altitude effect by the Nether's sea level", shown is not None and wanted is not None and abs(shown - round(wanted * 10)) <= 1)
+    game.values.update({"cloud y in the Nether": nether_y, "Altitude effect in the Nether (tenths)": shown})
+    game.check("portal: altitude effect stuck at 0.5x in the Nether", shown == 5.0)
     game.view("THIRD_PERSON_BACK")
     game.shot("7-nether")
 

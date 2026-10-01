@@ -41,15 +41,23 @@ public final class LakituConfig {
     /** Slow Falling until landing after dismissing the cloud with the item (not when the cloud dies). */
     public boolean slowFallingOnDismount = true;
 
-    // --- Rain (cloud and Lakitu) ----------------------------------------------------------------
-    public double rainDamage = 1.0;
-    public double rainDamageIntervalSeconds = 2.0;
+    // --- Rain and water (cloud and Lakitu) -------------------------------------------------------
+    /** In rain or water a cloud turns into a grey rain cloud and flies at this much of its speed (it isn't hurt). */
+    public double rainCloudSpeed = 0.5;
 
     // --- Altitude speed while riding --------------------------------------------------------------
     /** The cloud's speed multiplier at the build limit. Normal (1×) at sea level, changing smoothly in between. */
     public double altitudeSpeedAtBuildLimit = 3.0;
     /** The multiplier at the bottom of the world (bedrock), changing smoothly from 1× at sea level. */
     public double altitudeSpeedAtBottom = 0.5;
+    /** The Nether and the End ignore height and use these. */
+    public double altitudeSpeedInNether = 0.5;
+    public double altitudeSpeedInEnd = 3.0;
+
+    // --- Spiny eggs thrown by cloud riders --------------------------------------------------------
+    /** Only riders can throw them. Not scaled by difficulty (a player threw it). */
+    public double riderSpinyEggDamage = 5.0;
+    public double riderSpinyEggCooldownSeconds = 1.0;
 
     // --- Test option ------------------------------------------------------------------------------
     /** Summoning also launches the player in their look direction, then eases back to normal control. */
@@ -72,6 +80,10 @@ public final class LakituConfig {
     /** Cloud item drop when killed by a player: like a wither skeleton skull, 2.5% + 1% per Looting level. */
     public double lakituCloudDropChance = 0.025;
     public double lakituCloudDropChancePerLooting = 0.01;
+    /** Spiny eggs dropped on death, whoever killed it: min to max, plus this many per Looting level. */
+    public int lakituSpinyEggDropMin = 2;
+    public int lakituSpinyEggDropMax = 4;
+    public int lakituSpinyEggDropPerLooting = 1;
 
     public static void load(Path configDir) {
         Path file = configDir.resolve(Lakitu.MOD_ID + ".json");

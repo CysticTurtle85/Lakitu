@@ -16,7 +16,7 @@ import net.minecraft.world.InteractionHand;
  * can't press keys in a background window. Instead the server sends system messages (tellraw over RCON) that this
  * driver turns into input on the client:
  * <ul>
- *   <li>{@code mctest use}: use the main-hand item (right-click)</li>
+ *   <li>{@code mctest use [off]}: use the main-hand item (right-click), or the off-hand one</li>
  *   <li>{@code mctest hold <jump|sneak|forward> <ticks>}: hold a movement key</li>
  *   <li>{@code mctest view <FIRST_PERSON|THIRD_PERSON_BACK|THIRD_PERSON_FRONT>}: camera</li>
  *   <li>{@code mctest inventory} / {@code mctest close}: open the player's inventory (effects show beside it) / close
@@ -38,8 +38,9 @@ public final class TestDriver {
         String[] args = text.substring(PREFIX.length()).trim().split(" ");
         switch (args[0]) {
             case "use" -> {
+                InteractionHand hand = args.length > 1 && args[1].equals("off") ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
                 if (minecraft.player != null && minecraft.gameMode != null)
-                    minecraft.gameMode.useItem(minecraft.player, InteractionHand.MAIN_HAND);
+                    minecraft.gameMode.useItem(minecraft.player, hand);
             }
             case "hold" -> {
                 KeyMapping key = switch (args[1]) {

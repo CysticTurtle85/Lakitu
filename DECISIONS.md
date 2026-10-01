@@ -27,7 +27,22 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 | Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude speed follows the new dimension's height rules straight away. Tested: Nether portal. |
 | Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical at sea level (see Altitude speed). No height cap. |
 | Falling | No fall damage while riding. Dismounting with the item gives Slow Falling until you land. If the cloud dies you fall normally. |
-| Hazards | Lava: burns like any mob. Rain: 1 HP every 2 s where the cloud's top is open to the sky (not in snow). |
+| Hazards | Lava: burns like any mob. Rain no longer hurts it (see Rain and water). |
+| Inventory preview | **Author, 2026-10-01:** show the cloud in the inventory's player preview "if that's standard for sitting on mobs, if not leave it". Vanilla draws only the player there (no horse, pig or strider under a rider), so it's left as is. |
+
+## Rain and water (cloud and Lakitu)
+
+**Author, 2026-10-01:** "when any kind of rain or water is touching the player or Lakitu it should go grey like a rain
+cloud and move at 0.5× speed instead of damaging the Lakitu or cloud, and should have a debuff that shows that with a
+grey cloud icon; all of this should apply to Lakitu too."
+
+| Topic | Decision |
+|---|---|
+| When | Rain falling on (or water touching) the cloud or whoever is on it: the rider, or the Lakitu. Vanilla's "in water or rain" check (rain where the sky is open, not snow). It stays a rain cloud for 1 s after the last drop, so the edge of a storm doesn't make it flicker. |
+| Look | The cloud turns grey: `lakitu_rain.png` / `lakitu_cloud_rain.png`, the same textures with the cloud repainted in rain-cloud greys (the Lakitu himself keeps his colours). Both textures are in `art/lakitu.bbmodel`. |
+| Speed | 0.5× (`rainCloudSpeed`), **stacking** with altitude and potions (author's choice: 2.4× up high becomes 1.2× in rain). The Lakitu mob flies at half speed (a transient flying-speed modifier). |
+| Damage | None any more (the old 1 HP every 2 s is gone, with its damage type and death messages). |
+| Debuff | "Rain Cloud" effect on the rider (harmful, beacon-style frame, no particles): "Rain Cloud" over "0.5× cloud speed" in the inventory, grey rain-cloud icon with raindrops (placeholder art). Gone as soon as the cloud dries or the rider dismounts. Not put on the Lakitu mob (an effect on a mob shows nothing). |
 | Test launch | Config flag, default off: summoning launches you along your look direction at ~20 blocks/s, easing back to normal control over ~1 s. |
 
 ## Altitude speed (while riding)
@@ -44,7 +59,7 @@ to bedrock; with a base of 10 the build limit gives 30 and bedrock 5.
 | Up and down | Climbing and sinking speed scale by the same multiplier as horizontal speed. |
 | Potions | The rider's Speed and Slowness multiply on top, the same way they change walking (Speed II and 2.4× altitude: 1.4 × 2.4 = 3.36×). Anything else that changes walking speed counts too; sprinting doesn't (riders can't sprint). |
 | Altitude effect | An "Altitude" effect on the rider shows the multiplier: "Altitude" over "2.4× cloud speed" in the inventory (to a tenth). It only informs; the speed comes from the cloud. Beacon-style frame (ambient), no particles, never runs out; removed on dismount and removes itself from anyone not riding a cloud. Icon: Lakitu's cloud with a gold up-arrow (placeholder art). |
-| Dimensions | **Assumption:** every dimension by its own sea level, bottom and build limit (Nether: 1× at y 32, 0.5× at y 0, 3× at y 256; End: 1× at y 0 and above it climbs toward 3× at y 256). Superflat worlds' sea level is −63, so their ground counts as 1×. Replaces the earlier flat Nether/End bonuses. |
+| Dimensions | **Author, 2026-10-01:** "in the End the altitude buff needs to be stuck at 3×, and in the Nether stuck at 0.5×" (config `altitudeSpeedInEnd`, `altitudeSpeedInNether`). Other dimensions (**assumption**) by their own sea level, bottom and build limit; superflat worlds' sea level is −63, so their ground counts as 1×. |
 
 ## Lakitu (mob)
 
@@ -55,9 +70,22 @@ to bedrock; with a base of 10 the build limit gives 30 and bedrock 5.
 | Attack | Always hostile, **except** to players riding a Lakitu Cloud. Throws **spiny eggs** (author, 2026-09-30; replaced the snowball placeholder): they arc like snowballs, deal **5 damage** (author, 2026-10-01: "increase the damage to whatever you think it should be"; was 2; `lakituSpinyEggDamage`, scaled by difficulty like other mob projectiles: 3.5 Easy, 5 Normal, 7.5 Hard, like a blaze fireball), and crack open where they land. **Throw animation** (author, 2026-10-01): it pulls an egg out of its cloud with its right hand, lifts it overhead (arm out to the side, clear of the goggles), winds back and throws; the egg leaves its hand 0.5 s into the 0.85 s animation, from where the hand is at that moment. They don't hatch (the author chose "just hurt and break"; Spinies could come later). Every 2 s, 16-block range. |
 | Provoked by a rider | **Default (unanswered):** fights back at the rider who hit it. Config: `lakituRetaliatesAgainstRiders`. |
 | Health | **Default (unanswered):** 20 HP. XP 5 (like a ghast). |
-| Drops | Lakitu Cloud item, only when killed by a player: 2.5% + 1% per Looting level (wither skeleton skull odds). Numbers in config. |
+| Drops | Lakitu Cloud item, only when killed by a player: 2.5% + 1% per Looting level (wither skeleton skull odds). **Spiny eggs** (author, 2026-10-01): 2–4, +1 per Looting level, whoever killed it. Numbers in config. |
 | Spawning | Natural, Overworld, on the ground at Y ≥ 128 (mountain height, config) under open sky, rare (weight 10 in the monster pool × `lakituSpawnChance` 0.1). Not on Peaceful. Spawn egg in the Spawn Eggs tab. |
-| Hazards | Same as the mount: lava and rain. |
+| Hazards | Same as the mount: lava burns it; rain or water makes its cloud a grey, half-speed rain cloud instead of hurting it. |
+
+## Spiny eggs for cloud riders
+
+**Author, 2026-10-01:** "add the spiky things so that if you are riding a cloud you can throw them, and that needs to
+be clear somehow"; drop rate and recipe chosen from options.
+
+| Topic | Decision |
+|---|---|
+| Item | Spiny Egg, stacks to 16, Combat tab after the eggs. Thrown like an egg, it is the Lakitu's spiny egg: 5 damage (`riderSpinyEggDamage`, not scaled by difficulty since a player threw it), cracks where it lands, never hits the thrower's own cloud. |
+| Who | Only a player riding a Lakitu Cloud. On foot it isn't thrown or used up. |
+| Rate | One per second (`riderSpinyEggCooldownSeconds`; author's choice). |
+| Making it clear | Tooltip "Throw while riding a Lakitu Cloud"; trying on foot says "Spiny Eggs can only be thrown from a Lakitu Cloud"; the Lakitu Cloud's tooltip says "While riding, you can throw Spiny Eggs"; the controls message when you mount says "Space to rise, Shift to sink, Spiny Eggs to throw". |
+| Getting them | Lakitu drops (2–4, +1 per Looting) and a recipe: Egg (any) + Cactus + Red Dye → 2, shapeless (author's choice), unlocked in the recipe book by a cactus or a spiny egg. |
 
 ## Art
 
@@ -74,7 +102,8 @@ to bedrock; with a base of 10 the build limit gives 30 and bedrock 5.
 
 - Sounds: ghastling hurt/death sounds, Happy Ghast harness sounds on summon/dismiss, egg throw and turtle-egg crack for spiny eggs.
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
-- Item icon, spawn egg and mod icon: simple 16×16 pixel art drawn in code. Altitude effect icon: 18×18, drawn in code.
+- Item icons (Lakitu Cloud, spawn egg, Spiny Egg) and mod icon: simple 16×16 pixel art drawn in code. Altitude and
+  Rain Cloud effect icons: 18×18, drawn in code.
 - Animations: a gentle bob and the throw, made in code (the throw's keyframes come from the skill's
   `scripts/art/examples/lakitu_throw.py`, checked frame by frame so the arm never passes through the head).
 - Models are generated from the Blockbench projects listed in `art/models.json` by `tools/bbmodel_to_geo.py` (the cloud-only model drops the `lakitu` group).

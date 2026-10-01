@@ -11,6 +11,11 @@
   egg leaves from its hand.
 - Spiny eggs hit harder: 5 damage (was 2), scaled by difficulty like other mob projectiles. Existing config files
   that still have the old default are updated.
+- Rain and water no longer hurt the cloud or the Lakitu: the cloud turns into a grey rain cloud and flies at half
+  speed (stacking with altitude), with a Rain Cloud effect on the rider.
+- Altitude speed is fixed in the Nether (0.5×) and the End (3×).
+- Spiny Eggs for cloud riders: throw them from a Lakitu Cloud (5 damage, one per second). Lakitus drop 2–4 (+1 per
+  Looting); Egg + Cactus + Red Dye makes 2.
 
 ## 0.1.0
 - First playable build, Minecraft 26.3 on Fabric (and Quilt) and NeoForge.

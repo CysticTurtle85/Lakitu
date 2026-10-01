@@ -1,16 +1,18 @@
 package net.cystic.lakitu.neoforge;
 
-import net.cystic.lakitu.AltitudeEffect;
+import net.cystic.lakitu.CloudSpeedEffect;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
 import net.cystic.lakitu.entity.SpinyEggEntity;
 import net.cystic.lakitu.item.CloudData;
 import net.cystic.lakitu.item.LakituCloudItem;
+import net.cystic.lakitu.item.SpinyEggItem;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.SpawnPlacementTypes;
@@ -48,7 +50,11 @@ public class LakituNeoForge {
     private static final DeferredItem<LakituCloudItem> CLOUD_ITEM = ITEMS.registerItem("lakitu_cloud", LakituCloudItem::new);
     private static final DeferredItem<SpawnEggItem> SPAWN_EGG = ITEMS.registerItem("lakitu_spawn_egg",
             properties -> new SpawnEggItem(properties.spawnEgg(LAKITU.get())));
-    private static final DeferredHolder<MobEffect, AltitudeEffect> ALTITUDE = EFFECTS.register("altitude", AltitudeEffect::new);
+    private static final DeferredItem<SpinyEggItem> SPINY_EGG_ITEM = ITEMS.registerItem("spiny_egg", SpinyEggItem::new);
+    private static final DeferredHolder<MobEffect, CloudSpeedEffect> ALTITUDE = EFFECTS.register("altitude",
+            () -> new CloudSpeedEffect(MobEffectCategory.BENEFICIAL, 0x9ED8FF));
+    private static final DeferredHolder<MobEffect, CloudSpeedEffect> RAIN_CLOUD = EFFECTS.register("rain_cloud",
+            () -> new CloudSpeedEffect(MobEffectCategory.HARMFUL, 0x767D88));
 
     public LakituNeoForge(IEventBus modBus) {
         Lakitu.init(FMLPaths.CONFIGDIR.get());
@@ -58,7 +64,9 @@ public class LakituNeoForge {
         Lakitu.spinyEgg = SPINY_EGG::get;
         Lakitu.cloudItem = CLOUD_ITEM::get;
         Lakitu.spawnEgg = SPAWN_EGG::get;
+        Lakitu.spinyEggItem = SPINY_EGG_ITEM::get;
         Lakitu.altitudeEffect = () -> ALTITUDE;
+        Lakitu.rainCloudEffect = () -> RAIN_CLOUD;
 
         COMPONENTS.register(modBus);
         ENTITIES.register(modBus);
@@ -84,5 +92,7 @@ public class LakituNeoForge {
             event.insertAfter(new ItemStack(Items.SADDLE), new ItemStack(CLOUD_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
         else if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS)
             event.insertAfter(new ItemStack(Items.GHAST_SPAWN_EGG), new ItemStack(SPAWN_EGG.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+        else if (event.getTabKey() == CreativeModeTabs.COMBAT)
+            event.insertAfter(new ItemStack(Items.BLUE_EGG), new ItemStack(SPINY_EGG_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
     }
 }
