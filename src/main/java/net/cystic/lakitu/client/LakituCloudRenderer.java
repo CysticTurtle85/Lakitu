@@ -12,7 +12,7 @@ import software.bernie.geckolib.renderer.base.GeoRenderState;
 
 /**
  * The rideable cloud: geckolib/models/entity/lakitu_cloud.geo.json, the Lakitu model without the Lakitu. Floating,
- * turning and leaning come from FlyingMountRenderer (it leans around its middle, 6 px up); grey
+ * turning and leaning come from FlyingMountRenderer (it leans around its middle, 6 px up: FlightSettings); grey
  * (lakitu_cloud_rain.png) while it's a rain cloud.
  */
 public class LakituCloudRenderer<R extends LivingEntityRenderState & GeoRenderState> extends FlyingMountRenderer<LakituCloudEntity, R> {
@@ -20,7 +20,7 @@ public class LakituCloudRenderer<R extends LivingEntityRenderState & GeoRenderSt
     private static final Identifier RAIN_TEXTURE = Lakitu.id("textures/entity/lakitu_cloud_rain.png");
 
     public LakituCloudRenderer(EntityRendererProvider.Context context) {
-        super(context, Lakitu.cloudEntity.get(), 6.0F / 16.0F);
+        super(context, Lakitu.cloudEntity.get());
         this.shadowRadius = 0.7F;
     }
 

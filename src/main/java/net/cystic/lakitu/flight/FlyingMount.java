@@ -27,9 +27,10 @@ import org.jspecify.annotations.Nullable;
  * A mount a player flies: a cloud, a broomstick, a carpet. The rider steers it like a Happy Ghast: WASD moves it
  * relative to where they look (pitch ignored), Space rises and Shift sinks (Shift never dismounts:
  * FlyingMountPlayerMixin). Movement is simulated on the rider's client, eased per axis with a critically damped
- * spring, so it gathers speed smoothly and glides to a stop ({@link FlightSettings}). On screen
- * ({@code FlyingMountRenderer}) it floats up and down with its rider, swings round smoothly to where the rider looks and
- * leans a little into turns and speed.
+ * spring, so it gathers speed smoothly and glides to a stop; the faster it was going, the longer the glide, so a tap
+ * barely drifts ({@link FlightSettings}). On screen ({@code FlyingMountRenderer}) it floats up and down with its rider,
+ * swings round smoothly to where the rider looks and leans a little into turns and speed ({@link FlightPose}), the
+ * rider leaning with it (FlyingMountRiderMixin).
  *
  * <p>A mount type extends this, passes its {@link FlightSettings} (and on the server, its configured speeds through
  * {@link #setFlightSettings}), and can change its speed on the fly with {@link #speedMultiplier} (Lakitu's cloud: height
@@ -53,9 +54,10 @@ public abstract class FlyingMount extends Mob {
     private final FlightSettings look;
     /** The springs' own rates of change, per axis (rider's client). */
     private double easeX, easeY, easeZ;
-    // On screen (every client): smoothed body yaw, lean into turns, dip when speeding up.
-    private float visualYaw, visualYawO, lean, leanO, tilt, tiltO;
-    private Vec3 lastMotion = Vec3.ZERO;
+    /** How long (smoothing ticks) the glide after letting go lasts: set from the speed while the keys are held. */
+    private double glideHorizontal, glideVertical;
+    /** On screen (every client): smoothed body yaw, lean into turns, dip when speeding up. */
+    private final FlightPose pose = new FlightPose();
 
     protected FlyingMount(EntityType<? extends FlyingMount> type, Level level, FlightSettings settings) {
         super(type, level);
@@ -63,7 +65,7 @@ public abstract class FlyingMount extends Mob {
         this.setNoGravity(true);
         if (!level.isClientSide())
             this.setFlightSettings(settings);
-        this.visualYaw = this.visualYawO = this.getYRot();
+        this.glideHorizontal = this.glideVertical = settings.glideSeconds() * 20.0 / SETTLE;
     }
 
     @Override
@@ -90,7 +92,7 @@ public abstract class FlyingMount extends Mob {
     public FlightSettings flightSettings() {
         return new FlightSettings(this.entityData.get(DATA_HORIZONTAL_SPEED), this.entityData.get(DATA_VERTICAL_SPEED),
                 this.entityData.get(DATA_ACCELERATION), this.entityData.get(DATA_GLIDE), this.look.turnSeconds(),
-                this.look.bobBlocks(), this.look.bobSeconds(), this.look.leanDegrees());
+                this.look.bobBlocks(), this.look.bobSeconds(), this.look.leanDegrees(), this.look.leanPivot());
     }
 
     /**
@@ -190,12 +192,18 @@ public abstract class FlyingMount extends Mob {
         double wantZ = (forward * cos + strafe * sin) * horizontal;
         double wantY = input.y * vertical;
 
-        // Eases in when pushing, glides out when letting go; each axis on its own spring.
+        // Eases in when pushing, glides out when letting go; each axis on its own spring. The glide lasts as long as
+        // the speed it had when the keys were let go earns: the full glide from full speed, a short settle after a tap.
         double accel = s.accelerationSeconds() * 20.0 / SETTLE;
-        double glide = s.glideSeconds() * 20.0 / SETTLE;
-        double horizontalTime = length > 0.01 ? accel : glide;
-        double verticalTime = Math.abs(input.y) > 0.01 ? accel : glide;
+        boolean steering = length > 0.01;
+        boolean climbing = Math.abs(input.y) > 0.01;
         Vec3 current = this.getDeltaMovement();
+        if (steering)
+            this.glideHorizontal = glideTicks(s, current.horizontalDistance() / Math.max(horizontal, 1.0E-4));
+        if (climbing)
+            this.glideVertical = glideTicks(s, Math.abs(current.y) / Math.max(vertical, 1.0E-4));
+        double horizontalTime = steering ? accel : this.glideHorizontal;
+        double verticalTime = climbing ? accel : this.glideVertical;
         double[] x = smoothDamp(current.x, wantX, this.easeX, horizontalTime);
         double[] y = smoothDamp(current.y, wantY, this.easeY, verticalTime);
         double[] z = smoothDamp(current.z, wantZ, this.easeZ, horizontalTime);
@@ -229,10 +237,23 @@ public abstract class FlyingMount extends Mob {
     }
 
     /**
+     * Smoothing ticks of the glide after letting go at {@code speedShare} of full speed: the full glide from full speed,
+     * falling off with the square of the speed, but never under half the acceleration time (it still settles smoothly).
+     */
+    private static double glideTicks(FlightSettings s, double speedShare) {
+        double share = Mth.clamp(speedShare, 0.0, 1.0);
+        return Math.max(s.accelerationSeconds() * 0.5, s.glideSeconds() * share * share) * 20.0 / SETTLE;
+    }
+
+    /**
      * One tick of a critically damped spring (as Unity's SmoothDamp) toward {@code target}: eases in and out without
-     * overshooting. {@code smoothTicks} sets how slow; it's ~95% there after 2.4 × that. Returns {value, rate}.
+     * overshooting. {@code smoothTicks} sets how slow; it's ~95% there after 2.4 × that. Returns {value, rate}. When the
+     * target moves behind it (keys let go or reversed), it drops the push it was still building toward the old one:
+     * otherwise a tap keeps speeding up after the key is up.
      */
     static double[] smoothDamp(double current, double target, double rate, double smoothTicks) {
+        if (rate * (target - current) < 0.0)
+            rate = 0.0;
         double omega = 2.0 / Math.max(smoothTicks, 0.05);
         double exp = 1.0 / (1.0 + omega + 0.48 * omega * omega + 0.235 * omega * omega * omega);
         double change = current - target;
@@ -263,44 +284,18 @@ public abstract class FlyingMount extends Mob {
     }
 
     private void tickLook() {
-        this.visualYawO = this.visualYaw;
-        this.leanO = this.lean;
-        this.tiltO = this.tilt;
-        float turnRate = (float) (1.0 - Math.pow(0.05, 1.0 / Math.max(1.0, this.look.turnSeconds() * 20.0)));
-        float turnLeft = Mth.wrapDegrees(this.getYRot() - this.visualYaw);
-        this.visualYaw += turnLeft * turnRate;
-
-        float lean = this.look.leanDegrees();
-        if (lean <= 0.0F)
-            return;
-        Vec3 motion = this.position().subtract(this.xo, this.yo, this.zo);
-        double yaw = this.visualYaw * Mth.DEG_TO_RAD;
-        Vec3 forward = new Vec3(-Math.sin(yaw), 0.0, Math.cos(yaw));
-        Vec3 right = new Vec3(-Math.cos(yaw), 0.0, -Math.sin(yaw));
-        double top = Math.max(0.05, this.entityData.get(DATA_HORIZONTAL_SPEED) / 20.0);
-        // Lean into the way it slides and turns; dip forward when speeding up, lift when slowing.
-        double sideways = motion.dot(right) / top + turnLeft / 40.0;
-        double speedingUp = motion.subtract(this.lastMotion).dot(forward) / (top * 0.08);
-        this.lastMotion = motion;
-        float targetLean = (float) Mth.clamp(sideways, -1.0, 1.0) * lean;
-        float targetTilt = (float) Mth.clamp(speedingUp, -1.0, 1.0) * lean * 0.6F;
-        this.lean += (targetLean - this.lean) * 0.2F;
-        this.tilt += (targetTilt - this.tilt) * 0.2F;
+        this.pose.tick(this.getYRot(), this.position().subtract(this.xo, this.yo, this.zo),
+                this.entityData.get(DATA_HORIZONTAL_SPEED) / 20.0, this.look.turnSeconds(), this.look.leanDegrees());
     }
 
-    /** Body yaw on screen, swinging smoothly round to where the rider looks. */
-    public float visualYaw(float partialTick) {
-        return this.visualYawO + Mth.wrapDegrees(this.visualYaw - this.visualYawO) * partialTick;
+    /** Its yaw, lean and dip on screen (client); the rider leans with it. */
+    public FlightPose pose() {
+        return this.pose;
     }
 
-    /** Degrees it leans to its right (into a right turn or slide); negative leans left. */
-    public float lean(float partialTick) {
-        return Mth.lerp(partialTick, this.leanO, this.lean);
-    }
-
-    /** Degrees it dips forward (speeding up); negative lifts its front (slowing down). */
-    public float tilt(float partialTick) {
-        return Mth.lerp(partialTick, this.tiltO, this.tilt);
+    /** Blocks above its feet that it and its rider lean around. */
+    public float leanPivot() {
+        return this.look.leanPivot();
     }
 
     // --- No falling --------------------------------------------------------------------------

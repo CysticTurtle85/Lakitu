@@ -24,7 +24,8 @@
 - Mario-style sounds (made from vanilla sounds) with subtitles for the Lakitu, its cloud and spiny eggs.
 - New item icons: the cloud with its face, a spikier Spiny Egg, a Lakitu-coloured spawn egg.
 - Smoother flying: the cloud eases up to speed and glides much longer to a stop after you let go, turns smoothly to
-  where you look and leans a little into turns.
+  where you look and leans a little into turns. A quick tap only nudges it (the glide grows with your speed), and you
+  lean with the cloud. Lakitus lean and dip as they float about too.
 
 ## 0.1.0
 - First playable build, Minecraft 26.3 on Fabric (and Quilt) and NeoForge.
