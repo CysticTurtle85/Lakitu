@@ -1,0 +1,14 @@
+{
+  "_note": "Modrinth gallery plan: files are in media/ (not in git). The featured image is the big one at the top of the page.",
+  "images": [
+    {"file": "2026-10-01T20_21_34.png", "featured": true, "title": "Rule the skies", "description": "A Lakitu and a cloud rider trading Spiny Eggs over the valley."},
+    {"file": "2026-10-01T20_15_54.png", "title": "Incoming!", "description": "Lakitus throw Spiny Eggs at anyone on foot."},
+    {"file": "2026-10-01T20_13_25.png", "title": "High in the mountains", "description": "Lakitus spawn high up, about as rare as a Ghast."},
+    {"file": "2026-10-01T20_30_25.png", "title": "Ready to throw", "description": "Each Lakitu pulls a Spiny Egg out of its cloud before throwing it."},
+    {"file": "2026-10-01T20_25_52.png", "title": "Rain cloud", "description": "Rain or water turns a cloud grey and slows it to half speed."},
+    {"file": "2026-10-01T20_29_12.png", "title": "Caught in the rain", "description": "Rain and water slow Lakitus down too."},
+    {"file": "2026-10-01T20_09.png", "title": "Over the cliffs", "description": "Ride your cloud faster the higher you fly."},
+    {"file": "2026-10-01T19_59_39.png", "title": "Ambush", "description": "A Lakitu hurls a Spiny Egg at a cave entrance."},
+    {"file": "2026-10-01T20_32_56.png", "title": "Spiny Egg", "description": "Throw them from your cloud for 5 damage each."}
+  ]
+}

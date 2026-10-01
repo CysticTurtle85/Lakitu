@@ -4,12 +4,13 @@
   "package": "net.cystic.lakitu.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "PlayerMixin"
+    "FlyingMountPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "client": [
-    "EffectsInInventoryMixin"
+    "EffectsInInventoryMixin",
+    "client.FlyingMountRiderMixin"
   ]
 }

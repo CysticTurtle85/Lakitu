@@ -184,8 +184,9 @@ subprojects {
 
     // Extra mods for dev runs only (maven.modrinth:<project>:<version>, comma-separated).
     val testMods = listProperty("test_mods")
-    // `-PjoinLocalServer` makes runClient connect straight to a runServer on this machine.
-    val joinLocalServer = rootProject.hasProperty("joinLocalServer")
+    // runClient is for playing (run/client). runTestClient is the test harness's (tools/mctest.py): its own folder
+    // (run/testclient, so tests never touch the author's options, worlds or config), it joins the test server on this
+    // machine, and its name in the command line is how tools/mcwindow.ps1 finds it and only it.
     val joinArgs = listOf("--quickPlayMultiplayer", "127.0.0.1:25565")
 
     val releaseJar: TaskProvider<out AbstractArchiveTask> = when (loader) {
@@ -203,11 +204,14 @@ subprojects {
             // so test mods go into the client's mods folder instead, as in a real game.
             val testModJars = configurations.create("testModJars") { isTransitive = false }
             testMods.forEach { dependencies.add(testModJars.name, it) }
-            val copyTestMods = tasks.register<Sync>("copyTestMods") { from(testModJars); into("run/client/mods") }
-            tasks.matching { it.name == "runClient" }.configureEach { dependsOn(copyTestMods) }
+            for ((run, dir) in listOf("runClient" to "run/client", "runTestClient" to "run/testclient")) {
+                val copy = tasks.register<Sync>("copyTestModsFor${run.removePrefix("run")}") { from(testModJars); into("$dir/mods") }
+                tasks.matching { it.name == run }.configureEach { dependsOn(copy) }
+            }
             loom.mods.register(modId) { sourceSet(mainSourceSet) }
             loom.mods.register("${modId}_testdriver") { sourceSet(testDriver) }
-            loom.runs.named("client") { runDir("run/client"); source(testDriver); if (joinLocalServer) programArgs(joinArgs) }
+            loom.runs.named("client") { runDir("run/client"); source(testDriver) }
+            loom.runs.register("testClient") { client(); runDir("run/testclient"); source(testDriver); programArgs(joinArgs) }
             loom.runs.named("server") { runDir("run/server") }
             tasks.named<AbstractArchiveTask>(if (unobfuscated) "jar" else "remapJar")
         }
@@ -220,7 +224,12 @@ subprojects {
                         client()
                         gameDirectory.set(file("run/client"))
                         sourceSet.set(testDriver)
-                        if (joinLocalServer) programArguments.addAll(joinArgs)
+                    }
+                    register("testClient") {
+                        client()
+                        gameDirectory.set(file("run/testclient"))
+                        sourceSet.set(testDriver)
+                        programArguments.addAll(joinArgs)
                     }
                     register("server") { server(); gameDirectory.set(file("run/server")); programArgument("--nogui") }
                 }
@@ -239,7 +248,11 @@ subprojects {
                     register("client") {
                         client()
                         gameDirectory.set(file("run/client"))
-                        if (joinLocalServer) programArguments.addAll(joinArgs)
+                    }
+                    register("testClient") {
+                        client()
+                        gameDirectory.set(file("run/testclient"))
+                        programArguments.addAll(joinArgs)
                     }
                     register("server") { server(); gameDirectory.set(file("run/server")); programArgument("--nogui") }
                 }
@@ -267,7 +280,8 @@ subprojects {
         projectId = modrinthProject
         versionNumber = "$modVersion+$mc-$loader"
         versionName = "${rootProject.property("mod_name")} $modVersion ($loaderName $mc)"
-        versionType = "beta"
+        // release, beta or alpha (gradle.properties `release_type`, default release).
+        versionType = (rootProject.findProperty("release_type") as String?) ?: "release"
         uploadFile.set(releaseJar)
         this.gameVersions.addAll(gameVersions)
         loaders.addAll(if (loader == "fabric") listOf("fabric", "quilt") else listOf(loader))

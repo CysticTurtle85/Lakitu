@@ -7,7 +7,7 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 
 | Topic | Decision |
 |---|---|
-| Minecraft / loaders | 26.3 only, Fabric (tagged Quilt) and NeoForge. **No ports to other versions until the very end.** Forge has no 26.x release; it comes back with the ports (1.20.1). |
+| Minecraft / loaders | 26.3 only, Fabric (tagged Quilt) and NeoForge. **No ports to other versions until the very end.** **Ports (author, 2026-10-01; on hold):** the same 10 Minecraft versions as Mining Helmet (1.20.1, 1.21.1, 1.21.4, 1.21.5, 1.21.8, 1.21.10, 1.21.11, 26.1.2, 26.2, 26.3), Fabric on all, NeoForge on 1.21.1+, Forge on 1.20.1 (20 builds). Started on the `ports` branch (target folders only), then paused by the author for the flying work. Forge has no 26.x release; it comes back with the ports (1.20.1). |
 | Build setup | Mining Helmet's layout: one shared source tree, `//#if` preprocessor, one `targets/<mc>-<loader>` folder per build. No Architectury/MultiLoader template, no extra library mod for players. |
 | Ids | Package `net.cystic.lakitu`, mod id `lakitu` (Blockbench project's GeckoLib mod id is already `lakitu`). |
 | License | MIT, like Mining Helmet. |
@@ -21,12 +21,15 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 | Ownership | Anyone holding the item can use it. The cloud seats one player: whoever summoned it. |
 | Summon / dismount | Use the item: cloud appears at your feet and seats you. Use it again while riding: cloud goes back into the item. Shift never dismounts (it sinks). |
 | Cooldowns | 1 s after summoning or dismissing (per cloud). **30 seconds** after the cloud dies (changed from the handoff's 10 minutes); it then comes back at **full health**. |
-| Health | 40 HP, stored on the item as a fraction; heals 1 HP / 10 s while stowed (computed on next summon). |
+| Health | 40 HP, stored on the item as a fraction; heals 1 HP / 10 s while stowed, and (**author, 2026-10-01**) the same while ridden. The item's bar and tooltip update live while stowed (written into the item once a second). |
 | Unridden cloud | Never exists: if it loses its rider (death, teleport, item leaves the inventory) it vanishes and its health goes back on the item. "Baby ghast logic" = the floaty, drift-to-a-stop flying feel. |
 | Disconnect | **Assumption (changed from "vanish"):** the cloud leaves the world with its rider but is kept in their player data, like a horse, so they log back in still riding instead of falling from the sky. Vanilla also refuses to let players ride entities that can't be saved. The Altitude effect is saved with the player and kept up to date by the cloud. |
 | Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude speed follows the new dimension's height rules straight away. Tested: Nether portal. |
 | Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical at sea level (see Altitude speed). No height cap. The message on mounting (**author, 2026-10-01**, shorter): "Use the Lakitu Cloud again to dismount. You can now throw Spiny Eggs". |
 | Float | **Author, 2026-10-01:** the rider bobs up and down with the cloud, as much as the cloud does (1 px every 2.5 s). The bob is done in code for both the model and the rider's seat, so they stay in step (the cloud no longer has a GeckoLib animation). |
+| Flight feel | **Author, 2026-10-01:** "slows down in more time and flies more fluidly". Each axis eases with a critically damped spring: ~0.6 s to full speed, easing in (`cloudAccelerationSeconds`), and ~1.8 s gliding to a stop after letting go (`cloudGlideSeconds`; was ~0.5 s both ways). On screen the cloud swings round smoothly to where the rider looks (0.25 s; steering itself is still instant), leans up to 6° into turns and slides and dips a little when speeding up. |
+| Taps and leaning | **Author, 2026-10-01:** a tap moved "a fixed minimum amount", "a forced move for like half a second after I let go"; make it smaller without changing the feel of holding a key, the player has to tilt with the cloud, and the Lakitu should tilt too. The glide after letting go now lasts as long as the speed earns (full glide from full speed, falling off with the square of the speed), and letting go drops the push the spring was still building: a 0.1 s tap drifts ~0.26 blocks (was ~4.5), holding is unchanged. Lean and dip grow with speed, so a tap barely leans. The rider leans and dips with the cloud around the same point; the Lakitu mob leans and dips the same way as it floats about. The camera doesn't lean. **Author, later:** "about double the tilt": leans up to 12° (was 6°), dips up to ~7°. |
+| Flying-mount framework | **Author, 2026-10-01:** "a framework or class for this kind of flying mount so I can create things like broomsticks later, and upgrade the flying in one place". The cloud's flying is the skill's `flying-mount` module (`flight/FlyingMount`, `FlightSettings`, `FlyingMountRenderer`, `FlyingMountPlayerMixin`); the cloud only adds its own speed changes (height, rain) and its item-bound life. Improving the module in the skill and syncing upgrades every mod with flying mounts. |
 | Falling | No fall damage while riding. Dismounting with the item gives Slow Falling until you land. If the cloud dies you fall normally. |
 | Hazards | Lava: burns like any mob. Rain no longer hurts it (see Rain and water). |
 | Inventory preview | **Author, 2026-10-01:** show the cloud in the inventory's player preview "if that's standard for sitting on mobs, if not leave it". Vanilla draws only the player there (no horse, pig or strider under a rider), so it's left as is. |
@@ -119,6 +122,18 @@ pufferfish puffing up/down; cloud hurt/death = breeze hurt and a wind burst.
 
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
 - Mod icon: simple pixel art drawn in code. Altitude and Rain Cloud effect icons: 18×18, drawn in code.
+
+## Release and Modrinth page (author, 2026-10-01)
+
+| Topic | Decision |
+|---|---|
+| Title | Lakitu (slug `lakitu`, free on Modrinth). |
+| Summary | "Lakitus now haunt the mountains. Beat one, take its cloud, and rule the skies." (also the in-game description) |
+| Version | 1.0.0, a full release. |
+| Mod icon | Generated design 2 (side view leaning over the cloud, Spiny Egg, sunset), pixelated to 64 px with a 28-colour palette (`art/icon/`: source image and `pixelate.py`). Same image in game and on Modrinth. Earlier code-drawn candidates were rejected: "same head shape same hair same glasses... each picture should be different", and real Lakitu's goggles have clear glass, no white. |
+| Page | Generated in one go in Mining Helmet's format (`art/modrinth/page.md`); the author edits after the mockup. Includes "Unofficial fan-made mod, not affiliated with Nintendo." |
+| Recipe picture | Drawn crafting grid (`art/recipe/make_recipe.py`). |
+| Gallery | The author's 9 shader screenshots in `media/` (not in git); order, featured image and captions chosen by me in `art/modrinth/gallery.json`, to change after the mockup. |
 
 ## Item icons
 

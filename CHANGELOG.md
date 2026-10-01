@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
+First release for Minecraft 26.3 (Fabric, Quilt, NeoForge):
+- Lakitus, found high in the mountains, throw Spiny Eggs at players on foot and leave cloud riders alone unless hit.
+- Lakitu Cloud: a rideable cloud that flies faster the higher you go, slows in rain, and heals over time.
+- Spiny Eggs to throw from your cloud, dropped by Lakitus or crafted from an Egg, Cactus and Red Dye.
+- 4 advancements; every number configurable in config/lakitu.json.
+
+## Development notes (before 1.0.0)
+- The cloud now also heals while you ride it (1 health every 10 s), and the item's health bar fills up live while
+  it's stowed.
+- New mod icon.
 - New Minecraft-style models and texture for the Lakitu and Lakitu's Cloud, modelled on the Nintendo designs
   (goggles, hair strands, green shell, hands gripping a smiling cloud).
 - Hitboxes follow the new models: cloud 1.25 × 0.75 blocks, Lakitu 1.25 × 2 blocks (eyes at 1.45).
@@ -23,6 +33,9 @@
 - Four advancements in the Adventure tab: Lakitu Down, Head in the Clouds, Sky High, Return to Sender.
 - Mario-style sounds (made from vanilla sounds) with subtitles for the Lakitu, its cloud and spiny eggs.
 - New item icons: the cloud with its face, a spikier Spiny Egg, a Lakitu-coloured spawn egg.
+- Smoother flying: the cloud eases up to speed and glides much longer to a stop after you let go, turns smoothly to
+  where you look and leans a little into turns. A quick tap only nudges it (the glide grows with your speed), and you
+  lean with the cloud. Lakitus lean and dip as they float about too.
 
 ## 0.1.0
 - First playable build, Minecraft 26.3 on Fabric (and Quilt) and NeoForge.

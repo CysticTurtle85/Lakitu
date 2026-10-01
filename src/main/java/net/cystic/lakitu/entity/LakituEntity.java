@@ -6,6 +6,8 @@ import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
 import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.RainCloud;
+import net.cystic.lakitu.flight.FlightPose;
+import net.cystic.lakitu.flight.FlightSettings;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -54,7 +56,8 @@ import software.bernie.geckolib.util.GeckoLibUtil;
  * A Lakitu on its cloud: one entity, one joined model. Floats around like a ghast and throws spiny eggs at
  * players, except players riding a Lakitu Cloud, whom it leaves alone unless they hit it. Like the mount, rain or
  * water turns its cloud into a grey, slower rain cloud, and lava burns it. It drops spiny eggs, and killed by a
- * player it sometimes drops a Lakitu Cloud.
+ * player it sometimes drops a Lakitu Cloud. On screen it leans into its slides and turns and dips as it speeds up, like
+ * a ridden cloud (FlightPose, the flying-mount module's).
  */
 public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEntity {
     /** Rained on or in water (for a moment after, too): grey and slower. Set by the server. */
@@ -69,6 +72,9 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
      * thrown egg's height since an entity's position is its bottom.
      */
     private static final double RELEASE_RIGHT = 0.7, RELEASE_UP = 1.29, RELEASE_FORWARD = 0.48;
+    /** Leans like a ridden cloud (same degrees, same point); measured against a brisk ghast-like 5 blocks/s. */
+    public static final FlightSettings LOOK = LakituCloudEntity.FLIGHT;
+    private static final double LEAN_TOP_SPEED = 5.0 / 20.0;
 
     private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
     /** A cloud rider who hit this Lakitu, and so may be targeted despite riding. */
@@ -77,6 +83,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     private int releaseIn;
     private @Nullable LivingEntity throwTarget;
     private int wetTicks;
+    private final FlightPose pose = new FlightPose();
 
     public LakituEntity(EntityType<? extends LakituEntity> type, Level level) {
         super(type, level);
@@ -147,6 +154,8 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     @Override
     public void tick() {
         super.tick();
+        if (this.level().isClientSide())
+            this.pose.tick(this.yBodyRot, this.position().subtract(this.xo, this.yo, this.zo), LEAN_TOP_SPEED, 0.0F, LOOK.leanDegrees());
         // Here rather than in the AI step, so a Lakitu without AI turns grey too.
         if (!this.level().isClientSide() && this.isAlive()) {
             this.wetTicks = RainCloud.wetTicks(this.wetTicks, this.isInWaterOrRain());
@@ -180,6 +189,11 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         this.triggerAnim("attack", "throw");
         this.releaseIn = THROW_RELEASE_TICKS;
         this.throwTarget = target;
+    }
+
+    /** Its lean and dip on screen (client). */
+    public FlightPose pose() {
+        return this.pose;
     }
 
     /** Client: whether a throw is playing, i.e. whether the held egg is drawn. */

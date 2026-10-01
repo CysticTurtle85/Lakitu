@@ -1,0 +1,7 @@
+{
+  "owner": "CysticTurtle85",
+  "slug": "lakitu",
+  "categories": ["mobs", "transportation", "adventure"],
+  "client_side": "required",
+  "server_side": "required"
+}

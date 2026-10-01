@@ -1,17 +1,21 @@
 """In-game test harness core. Framework file: the same in every CysticTurtle85 mod; change it in the
 minecraft-multiloader-mods skill (assets/template/tools/mctest.py) and sync with scripts/new_mod.py sync.
-A mod's tools/smoke_test.py defines the scene and calls main(scene).
+A mod's tools/smoke_test.py defines the scene, in parts, and calls main([part, part, ...]).
 
 For each target (a folder in targets/):
   1. Install the real loader server under $MOD_TEST_DIR/<target> (default D:/<mod id>-test/<target>) with the release
      jar from build/dist plus its Modrinth dependencies (GeckoLib when gradle.properties has geckolib=true, Fabric API on Fabric, and
      the target's `server_test_mods`). Flat world, Easy, RCON on, natural spawning off.
-  2. Join with the dev client (gradlew :<target>:runClient -PjoinLocalServer). Input goes through the dev-only test
+  2. Join with the dev client (gradlew :<target>:runTestClient, its own folder run/testclient). Input goes through the dev-only test
      driver mod (src/testdriver): 26.x reads input via SDL3, which ignores keys posted to a window without focus,
      and the harness must never take focus from the user. Screenshots use PrintWindow on the test client only.
   3. Run the scene, grade the checks, write tools/smoke/<target>.report.txt and screenshots.
 
-Usage: python tools/smoke_test.py <target> [<target> ...]
+Usage: python tools/smoke_test.py [--only part,part] <target> [<target> ...]
+
+Test only what a change touches: each part (a function taking the Game) sets up its own state, so `--only flight`
+runs the flight part alone. The whole scene is for releases and changes that touch everything. The printed summary
+leaves out the RCON log; tools/smoke/<target>.report.txt has it.
 """
 import json, os, pathlib, re, shutil, socket, struct, subprocess, sys, time, urllib.parse, urllib.request, zipfile
 
@@ -156,7 +160,7 @@ def install_server(target, p):
 
 
 def prepare_client(target, mc):
-    client = REPO / "targets" / target / "run" / "client"
+    client = REPO / "targets" / target / "run" / "testclient"
     client.mkdir(parents=True, exist_ok=True)
     # Merge into the client's own options. Without a "version:" line the game treats the file as an ancient format
     # and rejects all of it, so a fresh file starts from the game's data version.
@@ -168,6 +172,8 @@ def prepare_client(target, mc):
         "onboardAccessibility": "false", "skipMultiplayerWarning": "true", "joinedFirstServer": "true", "tutorialStep": "none",
         "renderDistance": "6", "simulationDistance": "6", "soundCategory_master": "0.0", "pauseOnLostFocus": "false",
         "narrator": "0", "guiScale": "2", "fullscreen": "false",
+        # Chat stays on (the test driver reads its commands from it) but invisible, so it never covers a screenshot.
+        "chatOpacity": "0.0", "textBackgroundOpacity": "0.0",
     })
     options_file.write_text("".join(f"{k}:{v}\n" for k, v in options.items()))
     (client / "logs" / "latest.log").unlink(missing_ok=True)
@@ -258,7 +264,7 @@ class Game:
         time.sleep(wait)
 
     def hold(self, key, seconds):
-        """key: jump, sneak or forward."""
+        """key: jump, sneak, forward, back, left or right."""
         self.drive(f"hold {key} {round(seconds * 20)}")
         time.sleep(seconds + 0.2)
 
@@ -277,7 +283,17 @@ class Game:
         return ok
 
 
-def run_target(target, scene):
+def scene_parts(scene, only):
+    """The parts to run: a scene is one function(game) or a list of them; `only` picks some by function name."""
+    parts = list(scene) if isinstance(scene, (list, tuple)) else [scene]
+    names = {part.__name__: part for part in parts}
+    unknown = [n for n in only if n not in names]
+    if unknown:
+        raise SystemExit(f"unknown part(s): {', '.join(unknown)}; the parts are: {', '.join(names)}")
+    return [part for part in parts if not only or part.__name__ in only]
+
+
+def run_target(target, parts):
     free_test_ports()
     p = properties(REPO / "targets" / target / "gradle.properties")
     OUT.mkdir(exist_ok=True)
@@ -293,7 +309,7 @@ def run_target(target, scene):
         if not wait_for(server_out, r"Done \(", 900, server):
             report["result"] = "FAIL: production server did not start"
             return report
-        client = subprocess.Popen(["cmd", "/c", str(REPO / "gradlew.bat"), f":{target}:runClient", "-PjoinLocalServer", "--console=plain"],
+        client = subprocess.Popen(["cmd", "/c", str(REPO / "gradlew.bat"), f":{target}:runTestClient", "--console=plain"],
                                   cwd=REPO, env=ENV, stdout=open(client_out, "w"), stderr=subprocess.STDOUT)
         client_log = client_dir / "logs" / "latest.log"
         deadline = time.time() + 900
@@ -316,7 +332,8 @@ def run_target(target, scene):
         game.run("time set noon")
         game.run("weather clear")
         try:
-            scene(game)
+            for part in parts:
+                part(game)
         finally:
             report.update(checks=game.checks, values=game.values, rcon=game.log)
             try:
@@ -339,19 +356,24 @@ def run_target(target, scene):
 
 
 def main(scene):
-    for t in sys.argv[1:]:
+    args = sys.argv[1:]
+    only = []
+    if "--only" in args:
+        i = args.index("--only")
+        only = [n for n in args[i + 1].split(",") if n]
+        del args[i:i + 2]
+    parts = scene_parts(scene, only)
+    for t in args:
         try:
-            r = run_target(t, scene)
+            r = run_target(t, parts)
         except Exception as e:
             r = {"target": t, "result": f"ERROR: {e!r}"}
-        lines = [f"===== {t}: {r.get('result')}",
-                 "server mods: " + ", ".join(r.get("server_mods", [])),
-                 "values: " + json.dumps(r.get("values", {})),
-                 "checks:"] + [f"  {'ok  ' if v else 'FAIL'} {k}" for k, v in r.get("checks", {}).items()]
-        lines += [f"> {c}\n  {resp}" for c, resp in r.get("rcon", [])]
-        lines.append("-- server problems:"); lines += r.get("server_problems", [])
-        lines.append("-- client problems:"); lines += r.get("client_problems", [])
-        text = "\n".join(lines)
+        summary = [f"===== {t}: {r.get('result')}  (parts: {', '.join(p.__name__ for p in parts)})",
+                   "server mods: " + ", ".join(r.get("server_mods", [])),
+                   "values: " + json.dumps(r.get("values", {})),
+                   "checks:"] + [f"  {'ok  ' if v else 'FAIL'} {k}" for k, v in r.get("checks", {}).items()]
+        problems_ = ["-- server problems:"] + r.get("server_problems", []) + ["-- client problems:"] + r.get("client_problems", [])
+        rcon = [f"> {c}\n  {resp}" for c, resp in r.get("rcon", [])]
         OUT.mkdir(exist_ok=True)
-        (OUT / f"{t}.report.txt").write_text(text, encoding="utf-8")
-        print(text, flush=True)
+        (OUT / f"{t}.report.txt").write_text("\n".join(summary + rcon + problems_), encoding="utf-8")
+        print("\n".join(summary + problems_), flush=True)
