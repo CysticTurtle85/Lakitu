@@ -63,7 +63,8 @@ import software.bernie.geckolib.util.GeckoLibUtil;
  */
 public class LakituCloudEntity extends FlyingMount implements GeoEntity {
     /** The cloud's look; speeds and timings come from the config (setUp). */
-    public static final FlightSettings FLIGHT = FlightSettings.DEFAULT;
+    /** The module's calm, floaty defaults, leaning 12° (author: "about double the tilt"; the Lakitu mob leans the same). */
+    public static final FlightSettings FLIGHT = FlightSettings.DEFAULT.withLook(0.25F, 1.0F / 16.0F, 2.5F, 12.0F, 6.0F / 16.0F);
     private static final EntityDataAccessor<Float> DATA_ALTITUDE_TOP = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_ALTITUDE_BOTTOM = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_ALTITUDE_NETHER = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
