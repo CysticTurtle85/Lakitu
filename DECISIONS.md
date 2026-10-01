@@ -7,7 +7,7 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 
 | Topic | Decision |
 |---|---|
-| Minecraft / loaders | 26.3 only, Fabric (tagged Quilt) and NeoForge. **No ports to other versions until the very end.** Forge has no 26.x release; it comes back with the ports (1.20.1). |
+| Minecraft / loaders | 26.3 only, Fabric (tagged Quilt) and NeoForge. **No ports to other versions until the very end.** **Ports (author, 2026-10-01; on hold):** the same 10 Minecraft versions as Mining Helmet (1.20.1, 1.21.1, 1.21.4, 1.21.5, 1.21.8, 1.21.10, 1.21.11, 26.1.2, 26.2, 26.3), Fabric on all, NeoForge on 1.21.1+, Forge on 1.20.1 (20 builds). Started on the `ports` branch (target folders only), then paused by the author for the flying work. Forge has no 26.x release; it comes back with the ports (1.20.1). |
 | Build setup | Mining Helmet's layout: one shared source tree, `//#if` preprocessor, one `targets/<mc>-<loader>` folder per build. No Architectury/MultiLoader template, no extra library mod for players. |
 | Ids | Package `net.cystic.lakitu`, mod id `lakitu` (Blockbench project's GeckoLib mod id is already `lakitu`). |
 | License | MIT, like Mining Helmet. |
@@ -27,6 +27,8 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 | Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude speed follows the new dimension's height rules straight away. Tested: Nether portal. |
 | Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical at sea level (see Altitude speed). No height cap. The message on mounting (**author, 2026-10-01**, shorter): "Use the Lakitu Cloud again to dismount. You can now throw Spiny Eggs". |
 | Float | **Author, 2026-10-01:** the rider bobs up and down with the cloud, as much as the cloud does (1 px every 2.5 s). The bob is done in code for both the model and the rider's seat, so they stay in step (the cloud no longer has a GeckoLib animation). |
+| Flight feel | **Author, 2026-10-01:** "slows down in more time and flies more fluidly". Each axis eases with a critically damped spring: ~0.6 s to full speed, easing in (`cloudAccelerationSeconds`), and ~1.8 s gliding to a stop after letting go (`cloudGlideSeconds`; was ~0.5 s both ways). On screen the cloud swings round smoothly to where the rider looks (0.25 s; steering itself is still instant), leans up to 6° into turns and slides and dips a little when speeding up. |
+| Flying-mount framework | **Author, 2026-10-01:** "a framework or class for this kind of flying mount so I can create things like broomsticks later, and upgrade the flying in one place". The cloud's flying is the skill's `flying-mount` module (`flight/FlyingMount`, `FlightSettings`, `FlyingMountRenderer`, `FlyingMountPlayerMixin`); the cloud only adds its own speed changes (height, rain) and its item-bound life. Improving the module in the skill and syncing upgrades every mod with flying mounts. |
 | Falling | No fall damage while riding. Dismounting with the item gives Slow Falling until you land. If the cloud dies you fall normally. |
 | Hazards | Lava: burns like any mob. Rain no longer hurts it (see Rain and water). |
 | Inventory preview | **Author, 2026-10-01:** show the cloud in the inventory's player preview "if that's standard for sitting on mobs, if not leave it". Vanilla draws only the player there (no horse, pig or strider under a rider), so it's left as is. |

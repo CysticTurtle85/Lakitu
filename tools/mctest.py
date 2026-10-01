@@ -6,7 +6,7 @@ For each target (a folder in targets/):
   1. Install the real loader server under $MOD_TEST_DIR/<target> (default D:/<mod id>-test/<target>) with the release
      jar from build/dist plus its Modrinth dependencies (GeckoLib when gradle.properties has geckolib=true, Fabric API on Fabric, and
      the target's `server_test_mods`). Flat world, Easy, RCON on, natural spawning off.
-  2. Join with the dev client (gradlew :<target>:runClient -PjoinLocalServer). Input goes through the dev-only test
+  2. Join with the dev client (gradlew :<target>:runTestClient, its own folder run/testclient). Input goes through the dev-only test
      driver mod (src/testdriver): 26.x reads input via SDL3, which ignores keys posted to a window without focus,
      and the harness must never take focus from the user. Screenshots use PrintWindow on the test client only.
   3. Run the scene, grade the checks, write tools/smoke/<target>.report.txt and screenshots.
@@ -156,7 +156,7 @@ def install_server(target, p):
 
 
 def prepare_client(target, mc):
-    client = REPO / "targets" / target / "run" / "client"
+    client = REPO / "targets" / target / "run" / "testclient"
     client.mkdir(parents=True, exist_ok=True)
     # Merge into the client's own options. Without a "version:" line the game treats the file as an ancient format
     # and rejects all of it, so a fresh file starts from the game's data version.
@@ -258,7 +258,7 @@ class Game:
         time.sleep(wait)
 
     def hold(self, key, seconds):
-        """key: jump, sneak or forward."""
+        """key: jump, sneak, forward, back, left or right."""
         self.drive(f"hold {key} {round(seconds * 20)}")
         time.sleep(seconds + 0.2)
 
@@ -293,7 +293,7 @@ def run_target(target, scene):
         if not wait_for(server_out, r"Done \(", 900, server):
             report["result"] = "FAIL: production server did not start"
             return report
-        client = subprocess.Popen(["cmd", "/c", str(REPO / "gradlew.bat"), f":{target}:runClient", "-PjoinLocalServer", "--console=plain"],
+        client = subprocess.Popen(["cmd", "/c", str(REPO / "gradlew.bat"), f":{target}:runTestClient", "--console=plain"],
                                   cwd=REPO, env=ENV, stdout=open(client_out, "w"), stderr=subprocess.STDOUT)
         client_log = client_dir / "logs" / "latest.log"
         deadline = time.time() + 900

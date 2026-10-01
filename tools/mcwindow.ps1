@@ -4,8 +4,9 @@ param(
     [string]$Match = (Resolve-Path "$PSScriptRoot\..").Path
 )
 # Framework file (minecraft-multiloader-mods skill, assets/template/tools/mcwindow.ps1).
-# Works on this mod's test client window only: the java process whose command line contains $Match (the repo path),
-# so a game the user is playing is never captured or closed.
+# Works on this mod's test client window only: the java process whose command line contains $Match (the repo path)
+# and "testclient" (the runTestClient run: Loom's argFiles\runTestClient, ModDevGradle's testClientRun*.txt), so a
+# game the user is playing, even one started with runClient from this same mod, is never captured or closed.
 # "shot" copies the window's contents with PrintWindow (no focus, works behind other windows). "pid" prints its id.
 # Input is not sent from here: 26.x reads input via SDL3, which ignores keys posted to an unfocused window, so the
 # harness drives the client through the dev-only test driver mod (src/testdriver) instead.
@@ -21,7 +22,7 @@ public class McWin {
 }
 "@
 $proc = Get-CimInstance Win32_Process -Filter "Name='java.exe' OR Name='javaw.exe'" |
-    Where-Object { $_.CommandLine -like "*$Match*" } |
+    Where-Object { $_.CommandLine -like "*$Match*" -and $_.CommandLine -like "*testclient*" } |
     ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } |
     Where-Object { $_.MainWindowTitle -like "Minecraft*" } | Select-Object -First 1
 if (-not $proc) { Write-Output "no test client window"; exit 1 }

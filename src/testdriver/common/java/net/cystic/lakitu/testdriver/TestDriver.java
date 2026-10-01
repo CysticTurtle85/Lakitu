@@ -17,7 +17,7 @@ import net.minecraft.world.InteractionHand;
  * driver turns into input on the client:
  * <ul>
  *   <li>{@code mctest use [off]}: use the main-hand item (right-click), or the off-hand one</li>
- *   <li>{@code mctest hold <jump|sneak|forward> <ticks>}: hold a movement key</li>
+ *   <li>{@code mctest hold <jump|sneak|forward|back|left|right> <ticks>}: hold a movement key</li>
  *   <li>{@code mctest view <FIRST_PERSON|THIRD_PERSON_BACK|THIRD_PERSON_FRONT>}: camera</li>
  *   <li>{@code mctest inventory} / {@code mctest close}: open the player's inventory (effects show beside it) / close
  *   it. A press of the inventory key rather than setScreen, which moved from Minecraft to Gui in 26.2 (this source set
@@ -47,6 +47,9 @@ public final class TestDriver {
                     case "jump" -> minecraft.options.keyJump;
                     case "sneak" -> minecraft.options.keyShift;
                     case "forward" -> minecraft.options.keyUp;
+                    case "back" -> minecraft.options.keyDown;
+                    case "left" -> minecraft.options.keyLeft;
+                    case "right" -> minecraft.options.keyRight;
                     default -> throw new IllegalArgumentException("unknown key " + args[1]);
                 };
                 key.setDown(true);

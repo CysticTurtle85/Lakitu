@@ -86,7 +86,8 @@ def scene(game):
     game.shot("3-riding-front")
     game.view("FIRST_PERSON")
 
-    # Space rises (~5 blocks/s), Shift sinks without dismounting, W flies forward (~8 blocks/s).
+    # Space rises (~5 blocks/s), Shift sinks without dismounting, W flies forward (~8 blocks/s). It eases in over ~0.6 s
+    # and glides ~1.8 s to a stop (flying-mount module), so these distances include some glide.
     start = cloud_pos()
     game.hold("jump", 2.0)
     time.sleep(0.6)
@@ -98,14 +99,26 @@ def scene(game):
     game.hold("forward", 1.0)
     time.sleep(0.8)
     ahead = cloud_pos()
+    time.sleep(2.0)
+    stopped = cloud_pos()
     forward = rise = None
     if game.check("cloud position readable", start and up and down and ahead):
         rise, sink = round(up[1] - start[1], 2), round(up[1] - down[1], 2)
         forward = round(math.dist((down[0], down[2]), (ahead[0], ahead[2])), 2)
         game.values.update({"rise (2 s space)": rise, "sink (1 s shift)": sink, "forward (1 s W)": forward})
-        game.check("space rises ~10", 6.0 <= rise <= 14.0)
+        glide = round(math.dist((ahead[0], ahead[2]), (stopped[0], stopped[2])), 2) if stopped else None
+        game.values["glide after letting go of W (from 1 s after)"] = glide
+        game.check("space rises ~10 (+ glide)", 7.0 <= rise <= 16.0)
         game.check("shift sinks", sink >= 2.0)
-        game.check("W moves ~8", 4.0 <= forward <= 12.0)
+        game.check("W moves ~8 (+ glide)", 6.0 <= forward <= 15.0)
+        game.check("glides on after letting go", glide is not None and glide >= 0.4)
+    # Leaning into a slide: strafe right and look from behind (the cloud's right side should dip).
+    game.view("THIRD_PERSON_BACK")
+    game.drive("hold right 30")
+    time.sleep(1.0)
+    game.shot("3b-lean-right")
+    time.sleep(1.5)
+    game.view("FIRST_PERSON")
 
     # Teleporting the rider away makes the cloud vanish; summon a new one high up. Altitude speed: a superflat world's
     # sea level is -63 (bottom -64, build limit 320), so the ground above counts as 1x and y~200 as ~2.4x.

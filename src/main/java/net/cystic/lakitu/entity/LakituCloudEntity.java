@@ -8,6 +8,8 @@ import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
 import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.RainCloud;
+import net.cystic.lakitu.flight.FlightSettings;
+import net.cystic.lakitu.flight.FlyingMount;
 import net.cystic.lakitu.item.CloudData;
 import net.cystic.lakitu.item.DismountSlowFall;
 import net.cystic.lakitu.item.LakituCloudItem;
@@ -22,7 +24,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -30,12 +31,10 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
@@ -45,8 +44,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
-import org.joml.Vector3fc;
 import org.jspecify.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -59,14 +56,14 @@ import software.bernie.geckolib.util.GeckoLibUtil;
  * item. Portals take cloud and rider through together (vanilla vehicle travel), and a rider who logs out takes it
  * with them in their player data (like a horse), so they log back in still riding instead of falling.
  *
- * <p>Movement is simulated by the rider's client, like a horse or the Happy Ghast. WASD moves horizontally relative
- * to where the rider looks (pitch is ignored), Space rises and Shift sinks; {@code PlayerMixin} stops Shift from
- * dismounting. Height ({@link AltitudeSpeed}), the rider's Speed/Slowness and rain ({@link RainCloud}: rain or water
- * on the cloud or the rider turns it into a grey, slower rain cloud) change its speed; two effects show the rider why.
+ * <p>It flies as a {@link FlyingMount} (the flying-mount framework module: steering, easing in and gliding out,
+ * floating, turning and leaning). What's the cloud's own: height ({@link AltitudeSpeed}) and rain ({@link RainCloud}:
+ * rain or water on the cloud or the rider turns it into a grey, slower rain cloud) change its speed, two effects show
+ * the rider why, and its whole life is tied to its item.
  */
-public class LakituCloudEntity extends Mob implements GeoEntity {
-    private static final EntityDataAccessor<Float> DATA_HORIZONTAL_SPEED = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<Float> DATA_VERTICAL_SPEED = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
+public class LakituCloudEntity extends FlyingMount implements GeoEntity {
+    /** The cloud's look; speeds and timings come from the config (setUp). */
+    public static final FlightSettings FLIGHT = FlightSettings.DEFAULT;
     private static final EntityDataAccessor<Float> DATA_ALTITUDE_TOP = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_ALTITUDE_BOTTOM = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_ALTITUDE_NETHER = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
@@ -74,11 +71,6 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
     private static final EntityDataAccessor<Float> DATA_RAIN_SPEED = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     /** Rained on or in water (for a moment after, too): grey and slower. Set by the server. */
     private static final EntityDataAccessor<Boolean> DATA_RAIN_CLOUD = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.BOOLEAN);
-    private static final EntityDataAccessor<Vector3fc> DATA_LAUNCH = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.VECTOR3);
-    private static final EntityDataAccessor<Integer> DATA_LAUNCH_TICKS = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.INT);
-
-    /** Share of the gap to the wanted velocity closed each tick: the floaty, drift-to-a-stop feel. */
-    private static final double ACCELERATION = 0.25;
 
     /** Clouds currently out in the world, by cloud id (server only). */
     private static final Map<UUID, LakituCloudEntity> ACTIVE = new ConcurrentHashMap<>();
@@ -94,11 +86,11 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
     private boolean finished;
 
     public LakituCloudEntity(EntityType<? extends LakituCloudEntity> type, Level level) {
-        super(type, level);
-        this.setNoGravity(true);
+        super(type, level, FLIGHT);
         if (!level.isClientSide()) {
-            this.entityData.set(DATA_HORIZONTAL_SPEED, (float) LakituConfig.values.cloudHorizontalSpeed);
-            this.entityData.set(DATA_VERTICAL_SPEED, (float) LakituConfig.values.cloudVerticalSpeed);
+            LakituConfig config = LakituConfig.values;
+            this.setFlightSettings(FLIGHT.withSpeeds((float) config.cloudHorizontalSpeed, (float) config.cloudVerticalSpeed)
+                    .withTimings((float) config.cloudAccelerationSeconds, (float) config.cloudGlideSeconds));
             this.entityData.set(DATA_ALTITUDE_TOP, (float) LakituConfig.values.altitudeSpeedAtBuildLimit);
             this.entityData.set(DATA_ALTITUDE_BOTTOM, (float) LakituConfig.values.altitudeSpeedAtBottom);
             this.entityData.set(DATA_ALTITUDE_NETHER, (float) LakituConfig.values.altitudeSpeedInNether);
@@ -122,6 +114,8 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 40.0);
     }
 
+    /** Riding a Lakitu Cloud in particular (Lakitus leave these riders alone; the effects only show for them). */
+
     public static boolean isRiding(Entity entity) {
         return entity.getVehicle() instanceof LakituCloudEntity;
     }
@@ -143,11 +137,8 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(config.cloudMaxHealth);
         this.setHealth(Math.max(1.0F, healthFraction * this.getMaxHealth()));
         this.savedHealth = this.getHealth() / this.getMaxHealth();
-        if (launch != null) {
-            this.entityData.set(DATA_LAUNCH, new Vector3f((float) launch.x, (float) launch.y, (float) launch.z));
-            this.entityData.set(DATA_LAUNCH_TICKS, LakituConfig.ticks(config.testLaunchFadeSeconds));
-            this.setDeltaMovement(launch);
-        }
+        if (launch != null)
+            this.launch(launch, LakituConfig.ticks(config.testLaunchFadeSeconds));
     }
 
     public boolean belongsTo(ItemStack stack) {
@@ -157,99 +148,21 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
         super.defineSynchedData(entityData);
-        entityData.define(DATA_HORIZONTAL_SPEED, 8.0F);
-        entityData.define(DATA_VERTICAL_SPEED, 5.0F);
         entityData.define(DATA_ALTITUDE_TOP, 3.0F);
         entityData.define(DATA_ALTITUDE_BOTTOM, 0.5F);
         entityData.define(DATA_ALTITUDE_NETHER, 0.5F);
         entityData.define(DATA_ALTITUDE_END, 3.0F);
         entityData.define(DATA_RAIN_SPEED, 0.5F);
         entityData.define(DATA_RAIN_CLOUD, false);
-        entityData.define(DATA_LAUNCH, new Vector3f());
-        entityData.define(DATA_LAUNCH_TICKS, 0);
     }
 
     // --- Riding ---------------------------------------------------------------------------------
 
+    /** Height and rain on top of the rider's Speed/Slowness, from the cloud's exact height every tick (no steps). */
     @Override
-    protected boolean canAddPassenger(Entity passenger) {
-        return !this.isVehicle() && passenger instanceof Player;
-    }
-
-    @Override
-    public @Nullable LivingEntity getControllingPassenger() {
-        return this.getFirstPassenger() instanceof Player player ? player : super.getControllingPassenger();
-    }
-
-    @Override
-    public boolean isFlyingVehicle() {
-        return true;
-    }
-
-    @Override
-    protected Vec3 getRiddenInput(Player controller, Vec3 selfInput) {
-        float vertical = (controller.isJumping() ? 1.0F : 0.0F) - (controller.isShiftKeyDown() ? 1.0F : 0.0F);
-        return new Vec3(controller.xxa, vertical, controller.zza);
-    }
-
-    @Override
-    protected void tickRidden(Player controller, Vec3 riddenInput) {
-        super.tickRidden(controller, riddenInput);
-        // The cloud turns with the rider so WASD is relative to where they look.
-        this.setRot(controller.getYRot(), 0.0F);
-        this.yRotO = this.yBodyRot = this.yHeadRot = this.getYRot();
-    }
-
-    @Override
-    public void travel(Vec3 input) {
-        if (!(this.getControllingPassenger() instanceof Player player)) {
-            this.setDeltaMovement(this.getDeltaMovement().scale(0.8));
-            this.move(MoverType.SELF, this.getDeltaMovement());
-            return;
-        }
-        // Altitude times the rider's own Speed/Slowness, from the cloud's exact height every tick (no steps), and rain.
-        double multiplier = this.altitudeMultiplier() * AltitudeSpeed.riderFactor(player);
-        if (this.isRainCloud())
-            multiplier *= this.entityData.get(DATA_RAIN_SPEED);
-        double horizontal = this.entityData.get(DATA_HORIZONTAL_SPEED) * multiplier / 20.0;
-        double vertical = this.entityData.get(DATA_VERTICAL_SPEED) * multiplier / 20.0;
-        double strafe = input.x;
-        double forward = input.z;
-        double length = Math.sqrt(strafe * strafe + forward * forward);
-        if (length > 1.0) {
-            strafe /= length;
-            forward /= length;
-        }
-        float yaw = this.getYRot() * Mth.DEG_TO_RAD;
-        double sin = Mth.sin(yaw);
-        double cos = Mth.cos(yaw);
-        Vec3 wanted = new Vec3((strafe * cos - forward * sin) * horizontal, input.y * vertical, (forward * cos + strafe * sin) * horizontal);
-
-        Vec3 velocity;
-        int launchTicks = this.entityData.get(DATA_LAUNCH_TICKS);
-        if (this.tickCount < launchTicks) {
-            // Test launch: blend from the launch velocity to normal control.
-            float progress = this.tickCount / (float) launchTicks;
-            Vector3fc launch = this.entityData.get(DATA_LAUNCH);
-            velocity = new Vec3(launch.x(), launch.y(), launch.z()).scale(1.0F - progress).add(wanted.scale(progress));
-        } else {
-            velocity = this.getDeltaMovement().add(wanted.subtract(this.getDeltaMovement()).scale(ACCELERATION));
-        }
-        this.setDeltaMovement(velocity);
-        this.move(MoverType.SELF, velocity);
-    }
-
-    /**
-     * The cloud's float: 0 to 1 px up and back every 2.5 s, smoothly. Applied to the model (LakituCloudRenderer) and to
-     * the rider's seat here, so the rider bobs with the cloud (author, 2026-10-01).
-     */
-    public static float bob(float ageInTicks) {
-        return (1.0F - Mth.cos(ageInTicks * Mth.TWO_PI / 50.0F)) * 0.5F / 16.0F;
-    }
-
-    @Override
-    protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
-        return super.getPassengerAttachmentPoint(passenger, dimensions, scale).add(0.0, bob(this.tickCount), 0.0);
+    protected double speedMultiplier(Player rider) {
+        double multiplier = super.speedMultiplier(rider) * this.altitudeMultiplier();
+        return this.isRainCloud() ? multiplier * this.entityData.get(DATA_RAIN_SPEED) : multiplier;
     }
 
     @Override
@@ -422,10 +335,6 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         return super.hurtServer(level, source, damage);
     }
 
-    @Override
-    protected void checkFallDamage(double ya, boolean onGround, BlockState onState, BlockPos pos) {
-    }
-
     // --- Misc mob behaviour -----------------------------------------------------------------------
 
     @Override
@@ -435,11 +344,6 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
 
     @Override
     public boolean canBeLeashed() {
-        return false;
-    }
-
-    @Override
-    public boolean isPushable() {
         return false;
     }
 

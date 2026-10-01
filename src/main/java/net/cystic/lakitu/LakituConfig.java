@@ -34,6 +34,10 @@ public final class LakituConfig {
     /** Blocks per second at full input at sea level, before altitude, Speed and Slowness. */
     public double cloudHorizontalSpeed = 8.0;
     public double cloudVerticalSpeed = 5.0;
+    /** Time to (nearly) reach full speed from rest; it eases in. */
+    public double cloudAccelerationSeconds = 0.6;
+    /** Time to glide (nearly) to a stop after letting go of the keys. */
+    public double cloudGlideSeconds = 1.8;
     /** How long the item can't be used after the cloud dies. The cloud comes back at full health. */
     public double cloudDeathCooldownSeconds = 30.0;
     /** Anti-spam gap after summoning or dismissing. */
