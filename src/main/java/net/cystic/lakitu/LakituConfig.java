@@ -21,12 +21,17 @@ public final class LakituConfig {
     /** The loaded settings. Replaced as a whole on load, never modified in place. */
     public static LakituConfig values = new LakituConfig();
 
+    /** Bumped when a default changes, so {@link #migrate} can update files that still hold the old default. */
+    private static final int CURRENT_VERSION = 2;
+    /** Files from before versioning read as 0. */
+    public int configVersion = 0;
+
     // --- Lakitu Cloud (mount) -------------------------------------------------------------------
     public double cloudMaxHealth = 40.0;
     /** Health regained while the cloud is stowed in its item, per {@link #cloudStowedHealIntervalSeconds}. */
     public double cloudStowedHealAmount = 1.0;
     public double cloudStowedHealIntervalSeconds = 10.0;
-    /** Blocks per second at full input, before the altitude bonus. */
+    /** Blocks per second at full input at sea level, before altitude, Speed and Slowness. */
     public double cloudHorizontalSpeed = 8.0;
     public double cloudVerticalSpeed = 5.0;
     /** How long the item can't be used after the cloud dies. The cloud comes back at full health. */
@@ -40,18 +45,11 @@ public final class LakituConfig {
     public double rainDamage = 1.0;
     public double rainDamageIntervalSeconds = 2.0;
 
-    // --- Altitude bonus while riding (player and cloud) -------------------------------------------
-    /** Overworld (and other dimensions): no bonus at or below this Y... */
-    public int altitudeMinY = 64;
-    /** ...rising linearly to the full bonus at this Y. */
-    public int altitudeMaxY = 320;
-    /** Full bonus to max health, as a fraction of base max health (0.5 = +50%). */
-    public double altitudeMaxHealthBonus = 0.5;
-    /** Full bonus to the cloud's speed, as a fraction (0.5 = +50%). */
-    public double altitudeMaxSpeedBonus = 0.5;
-    /** Nether and End ignore height and use this share of the full bonus. */
-    public double netherBonusShare = 0.5;
-    public double endBonusShare = 1.0;
+    // --- Altitude speed while riding --------------------------------------------------------------
+    /** The cloud's speed multiplier at the build limit. Normal (1×) at sea level, changing smoothly in between. */
+    public double altitudeSpeedAtBuildLimit = 3.0;
+    /** The multiplier at the bottom of the world (bedrock), changing smoothly from 1× at sea level. */
+    public double altitudeSpeedAtBottom = 0.5;
 
     // --- Test option ------------------------------------------------------------------------------
     /** Summoning also launches the player in their look direction, then eases back to normal control. */
@@ -61,7 +59,8 @@ public final class LakituConfig {
 
     // --- Lakitu (mob) -----------------------------------------------------------------------------
     public double lakituMaxHealth = 20.0;
-    public double lakituSpinyEggDamage = 2.0;
+    /** Scaled by difficulty like other mob projectiles: 3.5 on Easy, 5 on Normal, 7.5 on Hard. */
+    public double lakituSpinyEggDamage = 5.0;
     public double lakituThrowIntervalSeconds = 2.0;
     public double lakituThrowRange = 16.0;
     /** Whether a Lakitu fights back when a player riding a cloud attacks it. */
@@ -85,6 +84,7 @@ public final class LakituConfig {
             }
         }
         values = loaded != null ? loaded : new LakituConfig();
+        values.migrate();
         try {
             Files.createDirectories(configDir);
             try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
@@ -93,6 +93,13 @@ public final class LakituConfig {
         } catch (IOException e) {
             Lakitu.LOGGER.error("Couldn't write {}", file, e);
         }
+    }
+
+    /** A changed default only reaches existing files through here; values someone changed themselves are kept. */
+    private void migrate() {
+        if (this.configVersion < 2 && this.lakituSpinyEggDamage == 2.0)
+            this.lakituSpinyEggDamage = 5.0;
+        this.configVersion = CURRENT_VERSION;
     }
 
     public static int ticks(double seconds) {

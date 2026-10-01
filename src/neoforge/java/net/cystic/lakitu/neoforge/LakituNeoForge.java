@@ -1,5 +1,6 @@
 package net.cystic.lakitu.neoforge;
 
+import net.cystic.lakitu.AltitudeEffect;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
@@ -9,6 +10,7 @@ import net.cystic.lakitu.item.LakituCloudItem;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.SpawnPlacementTypes;
@@ -34,6 +36,7 @@ public class LakituNeoForge {
     private static final DeferredRegister.DataComponents COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, Lakitu.MOD_ID);
     private static final DeferredRegister.Entities ENTITIES = DeferredRegister.createEntities(Lakitu.MOD_ID);
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Lakitu.MOD_ID);
+    private static final DeferredRegister<MobEffect> EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, Lakitu.MOD_ID);
 
     private static final DeferredHolder<DataComponentType<?>, DataComponentType<CloudData>> CLOUD_DATA = COMPONENTS.register("cloud", CloudData::createType);
     private static final DeferredHolder<EntityType<?>, EntityType<LakituCloudEntity>> CLOUD = ENTITIES.register("lakitu_cloud",
@@ -45,6 +48,7 @@ public class LakituNeoForge {
     private static final DeferredItem<LakituCloudItem> CLOUD_ITEM = ITEMS.registerItem("lakitu_cloud", LakituCloudItem::new);
     private static final DeferredItem<SpawnEggItem> SPAWN_EGG = ITEMS.registerItem("lakitu_spawn_egg",
             properties -> new SpawnEggItem(properties.spawnEgg(LAKITU.get())));
+    private static final DeferredHolder<MobEffect, AltitudeEffect> ALTITUDE = EFFECTS.register("altitude", AltitudeEffect::new);
 
     public LakituNeoForge(IEventBus modBus) {
         Lakitu.init(FMLPaths.CONFIGDIR.get());
@@ -54,10 +58,12 @@ public class LakituNeoForge {
         Lakitu.spinyEgg = SPINY_EGG::get;
         Lakitu.cloudItem = CLOUD_ITEM::get;
         Lakitu.spawnEgg = SPAWN_EGG::get;
+        Lakitu.altitudeEffect = () -> ALTITUDE;
 
         COMPONENTS.register(modBus);
         ENTITIES.register(modBus);
         ITEMS.register(modBus);
+        EFFECTS.register(modBus);
         modBus.addListener(LakituNeoForge::createAttributes);
         modBus.addListener(LakituNeoForge::registerSpawnPlacements);
         modBus.addListener(LakituNeoForge::addToCreativeTabs);

@@ -1,6 +1,6 @@
 # Lakitu: design decisions
 
-The handoff spec (`lakitu-mod-handoff.md`) plus the author's answers on 2026-09-29 and 2026-09-30. Where this file and the handoff
+The handoff spec (`lakitu-mod-handoff.md`) plus the author's answers on 2026-09-29, 2026-09-30 and 2026-10-01. Where this file and the handoff
 differ, this file wins. Items marked **assumption** were decided without an explicit answer and are easy to change.
 
 ## Project
@@ -23,24 +23,28 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 | Cooldowns | 1 s after summoning or dismissing (per cloud). **30 seconds** after the cloud dies (changed from the handoff's 10 minutes); it then comes back at **full health**. |
 | Health | 40 HP, stored on the item as a fraction; heals 1 HP / 10 s while stowed (computed on next summon). |
 | Unridden cloud | Never exists: if it loses its rider (death, teleport, item leaves the inventory) it vanishes and its health goes back on the item. "Baby ghast logic" = the floaty, drift-to-a-stop flying feel. |
-| Disconnect | **Assumption (changed from "vanish"):** the cloud leaves the world with its rider but is kept in their player data, like a horse, so they log back in still riding instead of falling from the sky. Vanilla also refuses to let players ride entities that can't be saved. The altitude bonus is not saved and is re-applied on the next tick. |
-| Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude bonus is removed at the portal (health clamps) and the new dimension's bonus applies straight away. Tested: Nether portal. |
-| Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical. No height cap. |
+| Disconnect | **Assumption (changed from "vanish"):** the cloud leaves the world with its rider but is kept in their player data, like a horse, so they log back in still riding instead of falling from the sky. Vanilla also refuses to let players ride entities that can't be saved. The Altitude effect is saved with the player and kept up to date by the cloud. |
+| Portals | **Author (2026-09-30):** you stay on the cloud through portals. Cloud and rider travel together (vanilla vehicle travel); the altitude speed follows the new dimension's height rules straight away. Tested: Nether portal. |
+| Controls | WASD horizontal relative to look yaw (pitch ignored), Space up, Shift down. ~8 blocks/s horizontal, ~5 vertical at sea level (see Altitude speed). No height cap. |
 | Falling | No fall damage while riding. Dismounting with the item gives Slow Falling until you land. If the cloud dies you fall normally. |
 | Hazards | Lava: burns like any mob. Rain: 1 HP every 2 s where the cloud's top is open to the sky (not in snow). |
 | Test launch | Config flag, default off: summoning launches you along your look direction at ~20 blocks/s, easing back to normal control over ~1 s. |
 
-## Altitude bonus (while riding)
+## Altitude speed (while riding)
+
+**Author, 2026-10-01:** replaces the earlier altitude bonus. "Scrap the health buffs, all I want is speed that
+smoothly increases depending on how close you are to the build height", normal at sea level, slower underground down
+to bedrock; with a base of 10 the build limit gives 30 and bedrock 5.
 
 | Topic | Decision |
 |---|---|
-| What | Max health of player **and** cloud, and the cloud's **speed**. |
-| Overworld | Linear from 0 at Y=64 to the full bonus at Y=320. Full bonus: +50% health, +50% speed (separate config values). |
-| Nether | Height ignored: half the full bonus (+25%). |
-| End | Height ignored: the full bonus (+50%). |
-| Other dimensions | **Assumption:** treated like the Overworld (by height). |
-| Health fraction | Kept when the bonus changes, so climbing/descending heals nothing. Removing the bonus clamps health to the normal max. |
-| Safety | Transient attribute modifier (never saved), `ADD_MULTIPLIED_BASE` so it scales base health only and leaves other mods' bonuses alone. Removed on dismount, cloud death, disconnect, dimension change. |
+| Health | No altitude health bonus any more, for the player or the cloud. |
+| Speed | A multiplier on the cloud's speed: 1× at sea level, rising smoothly (in step with height) to **3×** at the build limit, and falling smoothly to **0.5×** at the bottom of the world (bedrock). Above the build limit it stays 3×. Config: `altitudeSpeedAtBuildLimit`, `altitudeSpeedAtBottom`. |
+| Smoothness | Worked out every tick from the cloud's exact height on the rider's client (where the cloud's movement is simulated), so it never steps; the cloud's floaty acceleration smooths it further. |
+| Up and down | Climbing and sinking speed scale by the same multiplier as horizontal speed. |
+| Potions | The rider's Speed and Slowness multiply on top, the same way they change walking (Speed II and 2.4× altitude: 1.4 × 2.4 = 3.36×). Anything else that changes walking speed counts too; sprinting doesn't (riders can't sprint). |
+| Altitude effect | An "Altitude" effect on the rider shows the multiplier: "Altitude" over "2.4× cloud speed" in the inventory (to a tenth). It only informs; the speed comes from the cloud. Beacon-style frame (ambient), no particles, never runs out; removed on dismount and removes itself from anyone not riding a cloud. Icon: Lakitu's cloud with a gold up-arrow (placeholder art). |
+| Dimensions | **Assumption:** every dimension by its own sea level, bottom and build limit (Nether: 1× at y 32, 0.5× at y 0, 3× at y 256; End: 1× at y 0 and above it climbs toward 3× at y 256). Superflat worlds' sea level is −63, so their ground counts as 1×. Replaces the earlier flat Nether/End bonuses. |
 
 ## Lakitu (mob)
 
@@ -48,7 +52,7 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 |---|---|
 | Body | One entity, joined model (Lakitu + the same cloud group as the mount). |
 | Movement | Ghast-style floating. **Assumption:** while it has a target it floats to spots 5–9 blocks above and within 6 blocks of the target, so its throws can reach. |
-| Attack | Always hostile, **except** to players riding a Lakitu Cloud. Throws **spiny eggs** (author, 2026-09-30; replaced the snowball placeholder): they arc like snowballs, deal 2 damage (1 heart, `lakituSpinyEggDamage`), and crack open where they land. They don't hatch (the author chose "just hurt and break"; Spinies could come later). Every 2 s, 16-block range. |
+| Attack | Always hostile, **except** to players riding a Lakitu Cloud. Throws **spiny eggs** (author, 2026-09-30; replaced the snowball placeholder): they arc like snowballs, deal **5 damage** (author, 2026-10-01: "increase the damage to whatever you think it should be"; was 2; `lakituSpinyEggDamage`, scaled by difficulty like other mob projectiles: 3.5 Easy, 5 Normal, 7.5 Hard, like a blaze fireball), and crack open where they land. **Throw animation** (author, 2026-10-01): it pulls an egg out of its cloud with its right hand, lifts it overhead (arm out to the side, clear of the goggles), winds back and throws; the egg leaves its hand 0.5 s into the 0.85 s animation, from where the hand is at that moment. They don't hatch (the author chose "just hurt and break"; Spinies could come later). Every 2 s, 16-block range. |
 | Provoked by a rider | **Default (unanswered):** fights back at the rider who hit it. Config: `lakituRetaliatesAgainstRiders`. |
 | Health | **Default (unanswered):** 20 HP. XP 5 (like a ghast). |
 | Drops | Lakitu Cloud item, only when killed by a player: 2.5% + 1% per Looting level (wither skeleton skull odds). Numbers in config. |
@@ -59,7 +63,7 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 
 | Topic | Decision |
 |---|---|
-| Lakitu and cloud models | **New models (author, 2026-09-30):** "without deleting my model create a cloud and lakitu model ... as accurate as possible while fitting the minecraft style", and it doesn't have to resemble the old one. `art/lakitu.bbmodel` (67 cubes, 128×128 texture, box UV) follows the NSMBU / Super Mario Odyssey Lakitu: yellow Koopa with big round goggles (pupils behind the lenses, strap round the head), three hair strands, 2×2×2 nose, open mouth, cream plastron with segment lines, green shell with white rim and a central scute, arms reaching forward so both hands rest on the top of the cloud's face lump (pressed 1 px into it, **author 2026-09-30:** not floating) with the fingers over its front edge. The right hand is the throwing hand: `right_arm` > `right_hand` bones, nothing fused into the cloud, so a throw animation can swing it (checked with test poses; no throw animation yet). Lakitu's Cloud is white puffs with 1 px bevels (**author 2026-09-30:** a rounder 2 px version with the back split into lumps was tried and rejected, "old cloud was better", "untextured faces"; back to this one; then, from the author's marked screenshots: round off the back-right area around the side and seat puffs "not by bevels, just sculpting", and make the flat back wall less flat. Done with extra 1 px-bevel lumps in the same style: diagonal lumps in the front and back corners, a narrower back lump and a lower back bulge at a different depth, both sides alike), white fading to a soft blue-grey underside, and a face (eyes and a small smile, as in Odyssey). Groups: `lakitu` (with `body`, `head`, `right_arm` > `right_hand`, `left_arm` > `left_hand`) and `cloud`; the rideable cloud is the same project without the `lakitu` group. |
+| Lakitu and cloud models | **New models (author, 2026-09-30):** "without deleting my model create a cloud and lakitu model ... as accurate as possible while fitting the minecraft style", and it doesn't have to resemble the old one. `art/lakitu.bbmodel` (72 cubes with the held egg, 128×128 texture, box UV) follows the NSMBU / Super Mario Odyssey Lakitu: yellow Koopa with big round goggles (pupils behind the lenses, strap round the head), three hair strands, 2×2×2 nose, open mouth, cream plastron with segment lines, green shell with white rim and a central scute, arms reaching forward so both hands rest on the top of the cloud's face lump (pressed 1 px into it, **author 2026-09-30:** not floating) with the fingers over its front edge. The right hand is the throwing hand: `right_arm` > `right_hand` bones, nothing fused into the cloud, so the throw animation can swing it. A spiny egg sits in the right palm (`held_egg` bone, the same size and colours as the thrown egg, under the hand at rest), drawn only during the throw. Lakitu's Cloud is white puffs with 1 px bevels (**author 2026-09-30:** a rounder 2 px version with the back split into lumps was tried and rejected, "old cloud was better", "untextured faces"; back to this one; then, from the author's marked screenshots: round off the back-right area around the side and seat puffs "not by bevels, just sculpting", and make the flat back wall less flat. Done with extra 1 px-bevel lumps in the same style: diagonal lumps in the front and back corners, a narrower back lump and a lower back bulge at a different depth, both sides alike), white fading to a soft blue-grey underside, and a face (eyes and a small smile, as in Odyssey). Groups: `lakitu` (with `body`, `head`, `right_arm` > `right_hand` > `held_egg`, `left_arm` > `left_hand`) and `cloud`; the rideable cloud is the same project without the `lakitu` group. |
 | Shell and goggles fixes | **Author, 2026-09-30, after playing:** the shell's white rim (the lip between shell and Lakitu) is level with the top of the shell; no white frame on the shell's back (it looked unpainted); the rim is a shaded cream. Goggles (**2026-10-01**, author saw flickering bits in game): no transparent texels at all. A 10×4 piece holds the lenses, bridge and bottom rim. A 4-wide top rim over each lens leaves a real 2 px gap between them (**author:** remove the skin-coloured blocks there and colour the faces that show correctly). A 3-tall outer rim on each side, and behind it the band's last piece (2 px, the band rows only, band colour on every face including top and bottom; **author:** no skin-coloured block under it, and any block with band on its sides has a band top) in the 1 px slot between the goggles and the head's bevelled front corner, so the band goes all the way round (**author:** first there was a skin-coloured gap behind the goggles; then, after the rims were extended back, the slot showed as a pit from above, and the author asked for those extension blocks to be moved 1 px toward the centre to fill it, without adding blocks). The bottom notch is covered by the nose. The earlier see-through corners let the player look into the 1 px-deep frame from below, where its inside faces are culled. |
 | Face | **Author, 2026-09-30, after several rounds of options:** nose a single 2×2×2 block in the goggles' lower notch. Mouth: design "1", the tapered jaw inset flush with the face: the mouth's top row is painted on the face's bottom row, then the jaw steps in (6 wide with the tongue, then a 4-wide chin), and the chest runs up under the chin with a skin-coloured throat, so nothing hangs off the face. (Rejected along the way: mouth plate below the head, head extended with the mouth inside, snouts, open jaws, other mouth designs.) |
 | Author's earlier model | `lakitu_cloud.bbmodel` and `texture.png` in the repo root are kept untouched. To use them again, point the two entries in `art/models.json` back at `lakitu_cloud.bbmodel` and re-run `python tools/bbmodel_to_geo.py`. |
@@ -70,6 +74,7 @@ differ, this file wins. Items marked **assumption** were decided without an expl
 
 - Sounds: ghastling hurt/death sounds, Happy Ghast harness sounds on summon/dismiss, egg throw and turtle-egg crack for spiny eggs.
 - Particles: vanilla cloud puffs on summon, dismiss and death; red dust and crits when a spiny egg cracks.
-- Item icon, spawn egg and mod icon: simple 16×16 pixel art drawn in code.
-- Animations: a gentle bob made in code (the new model has named arm/hand/head bones ready for more).
+- Item icon, spawn egg and mod icon: simple 16×16 pixel art drawn in code. Altitude effect icon: 18×18, drawn in code.
+- Animations: a gentle bob and the throw, made in code (the throw's keyframes come from the skill's
+  `scripts/art/examples/lakitu_throw.py`, checked frame by frame so the arm never passes through the head).
 - Models are generated from the Blockbench projects listed in `art/models.json` by `tools/bbmodel_to_geo.py` (the cloud-only model drops the `lakitu` group).

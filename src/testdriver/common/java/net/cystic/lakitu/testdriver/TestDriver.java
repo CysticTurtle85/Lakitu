@@ -19,6 +19,9 @@ import net.minecraft.world.InteractionHand;
  *   <li>{@code mctest use}: use the main-hand item (right-click)</li>
  *   <li>{@code mctest hold <jump|sneak|forward> <ticks>}: hold a movement key</li>
  *   <li>{@code mctest view <FIRST_PERSON|THIRD_PERSON_BACK|THIRD_PERSON_FRONT>}: camera</li>
+ *   <li>{@code mctest inventory} / {@code mctest close}: open the player's inventory (effects show beside it) / close
+ *   it. A press of the inventory key rather than setScreen, which moved from Minecraft to Gui in 26.2 (this source set
+ *   isn't preprocessed).</li>
  * </ul>
  */
 public final class TestDriver {
@@ -49,6 +52,11 @@ public final class TestDriver {
                 HELD.put(key, Integer.parseInt(args[2]));
             }
             case "view" -> minecraft.options.setCameraType(CameraType.valueOf(args[1]));
+            case "inventory" -> KeyMapping.click(minecraft.options.keyInventory.getDefaultKey());
+            case "close" -> {
+                if (minecraft.player != null)
+                    minecraft.player.closeContainer();
+            }
             default -> throw new IllegalArgumentException("unknown test command " + text);
         }
     }

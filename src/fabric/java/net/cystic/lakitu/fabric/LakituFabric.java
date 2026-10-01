@@ -1,6 +1,7 @@
 package net.cystic.lakitu.fabric;
 
 import java.util.function.Function;
+import net.cystic.lakitu.AltitudeEffect;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
@@ -14,11 +15,13 @@ import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -54,6 +57,9 @@ public class LakituFabric implements ModInitializer {
         Item spawnEgg = registerItem("lakitu_spawn_egg", properties -> new SpawnEggItem(properties.spawnEgg(lakitu)));
         Lakitu.cloudItem = () -> cloudItem;
         Lakitu.spawnEgg = () -> spawnEgg;
+
+        Holder<MobEffect> altitude = Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, Lakitu.id("altitude"), new AltitudeEffect());
+        Lakitu.altitudeEffect = () -> altitude;
 
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> output.insertAfter(Items.SADDLE, cloudItem));
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.SPAWN_EGGS).register(output -> output.insertAfter(Items.GHAST_SPAWN_EGG, spawnEgg));

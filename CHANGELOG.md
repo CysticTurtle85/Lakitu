@@ -4,6 +4,13 @@
 - New Minecraft-style models and texture for the Lakitu and Lakitu's Cloud, modelled on the Nintendo designs
   (goggles, hair strands, green shell, hands gripping a smiling cloud).
 - Hitboxes follow the new models: cloud 1.25 × 0.75 blocks, Lakitu 1.25 × 2 blocks (eyes at 1.45).
+- Altitude reworked: no more health bonus. The cloud's speed (horizontal and vertical) changes smoothly with height,
+  from 1× at sea level up to 3× at the build limit and down to 0.5× at bedrock, in every dimension by its own sea
+  level. Speed and Slowness multiply on top. A new Altitude effect shows the multiplier while riding.
+- Lakitu throws with a proper animation: it pulls a spiny egg out of its cloud, lifts it overhead and throws it; the
+  egg leaves from its hand.
+- Spiny eggs hit harder: 5 damage (was 2), scaled by difficulty like other mob projectiles. Existing config files
+  that still have the old default are updated.
 
 ## 0.1.0
 - First playable build, Minecraft 26.3 on Fabric (and Quilt) and NeoForge.

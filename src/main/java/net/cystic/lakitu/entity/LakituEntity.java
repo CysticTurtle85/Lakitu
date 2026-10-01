@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.damagesource.DamageSource;
@@ -40,6 +41,7 @@ import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animatable.manager.AnimatableManager;
 import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.RawAnimation;
+import software.bernie.geckolib.animation.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
@@ -49,10 +51,22 @@ import software.bernie.geckolib.util.GeckoLibUtil;
  */
 public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEntity {
     private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("idle");
+    private static final RawAnimation THROW = RawAnimation.begin().thenPlay("throw");
+    /** From the start of the "throw" animation to the frame where the egg leaves the hand (0.5 s). */
+    private static final int THROW_RELEASE_TICKS = 10;
+    /**
+     * Where the egg leaves the hand, in blocks from the Lakitu's feet: the held egg's centre at the throw animation's
+     * release frame (art/lakitu.bbmodel posed by the animation: 0.7 right, 1.49 up, 0.48 forward), less half the
+     * thrown egg's height since an entity's position is its bottom.
+     */
+    private static final double RELEASE_RIGHT = 0.7, RELEASE_UP = 1.29, RELEASE_FORWARD = 0.48;
 
     private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
     /** A cloud rider who hit this Lakitu, and so may be targeted despite riding. */
     private @Nullable UUID provokedBy;
+    /** Ticks until the egg of the throw in progress leaves the hand (server), and at whom. */
+    private int releaseIn;
+    private @Nullable LivingEntity throwTarget;
 
     public LakituEntity(EntityType<? extends LakituEntity> type, Level level) {
         super(type, level);
@@ -63,7 +77,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     }
 
     public static EntityType.Builder<LakituEntity> configure(EntityType.Builder<LakituEntity> builder) {
-        // Cloud 1.25 blocks across, hair tips at 2 blocks, goggles at 1.45 (spiny eggs leave from there).
+        // Cloud 1.25 blocks across, hair tips at 2 blocks, goggles at 1.45 (line of sight; eggs leave from the hand).
         return builder.sized(1.25F, 2.0F).eyeHeight(1.45F).notInPeaceful().clientTrackingRange(10);
     }
 
@@ -103,6 +117,11 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         else if (LakituCloudEntity.isRiding(target) && !target.getUUID().equals(this.provokedBy))
             this.setTarget(null);
 
+        if (this.releaseIn > 0 && --this.releaseIn == 0 && this.throwTarget != null) {
+            this.performRangedAttack(this.throwTarget, 1.0F);
+            this.throwTarget = null;
+        }
+
         LakituConfig config = LakituConfig.values;
         if (this.tickCount % LakituConfig.ticks(config.rainDamageIntervalSeconds) == 0 && LakituCloudEntity.isInRain(this))
             this.hurtServer(level, LakituCloudEntity.rainDamage(level), (float) config.rainDamage);
@@ -119,13 +138,36 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         return hurt;
     }
 
+    /** Server: winds up a throw at the target. The animation plays on clients; the egg leaves the hand on cue. */
+    void startThrow(LivingEntity target) {
+        this.triggerAnim("attack", "throw");
+        this.releaseIn = THROW_RELEASE_TICKS;
+        this.throwTarget = target;
+    }
+
+    /** Client: whether a throw is playing, i.e. whether the held egg is drawn. */
+    public boolean isThrowing() {
+        AnimationController<?> attack = this.geoCache.getManagerForId(this.getId()).getAnimationControllers().get("attack");
+        return attack != null && attack.isPlayingTriggeredAnimation();
+    }
+
+    private Vec3 releasePoint() {
+        float yaw = this.yBodyRot * Mth.DEG_TO_RAD;
+        double sin = Mth.sin(yaw);
+        double cos = Mth.cos(yaw);
+        // Forward is (-sin, cos) and the Lakitu's right is (-cos, -sin), as for any mob facing yaw.
+        return this.position().add(-sin * RELEASE_FORWARD - cos * RELEASE_RIGHT, RELEASE_UP, cos * RELEASE_FORWARD - sin * RELEASE_RIGHT);
+    }
+
     @Override
     public void performRangedAttack(LivingEntity target, float power) {
         if (!(this.level() instanceof ServerLevel level))
             return;
         SpinyEggEntity egg = new SpinyEggEntity(level, this);
-        double dx = target.getX() - this.getX();
-        double dz = target.getZ() - this.getZ();
+        Vec3 from = this.releasePoint();
+        egg.setPos(from);
+        double dx = target.getX() - from.x;
+        double dz = target.getZ() - from.z;
         double arc = Math.sqrt(dx * dx + dz * dz) * 0.2;
         Projectile.spawnProjectile(egg, level, ItemStack.EMPTY,
                 projectile -> projectile.shoot(dx, target.getEyeY() - 1.1 + arc - projectile.getY(), dz, 1.6F, 4.0F));
@@ -186,6 +228,8 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController<LakituEntity>("float", test -> test.setAndContinue(IDLE)));
+        // Right arm, hand and held egg only, so it plays over the bob.
+        controllers.add(new AnimationController<LakituEntity>("attack", test -> PlayState.STOP).triggerableAnim("throw", THROW));
     }
 
     @Override
@@ -233,7 +277,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         }
     }
 
-    /** Throws a spiny egg at the target every few seconds while it's in range and visible. */
+    /** Throws a spiny egg at the target every few seconds while it's in range and visible (wind-up included). */
     private static class ThrowSpinyEggGoal extends Goal {
         private final LakituEntity lakitu;
         private int cooldown;
@@ -265,7 +309,7 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
                 return;
             LakituConfig config = LakituConfig.values;
             if (this.lakitu.distanceToSqr(target) <= config.lakituThrowRange * config.lakituThrowRange && this.lakitu.hasLineOfSight(target)) {
-                this.lakitu.performRangedAttack(target, 1.0F);
+                this.lakitu.startThrow(target);
                 this.cooldown = LakituConfig.ticks(config.lakituThrowIntervalSeconds);
             }
         }

@@ -34,6 +34,169 @@
           }
         }
       }
+    },
+    "throw": {
+      "animation_length": 0.85,
+      "bones": {
+        "right_arm": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.1": {
+              "vector": [
+                12,
+                -10,
+                5
+              ],
+              "easing": "easeOutQuad"
+            },
+            "0.3": {
+              "vector": [
+                110,
+                -20,
+                -35
+              ],
+              "easing": "easeInOutSine"
+            },
+            "0.42": {
+              "vector": [
+                135,
+                -20,
+                -32
+              ],
+              "easing": "easeOutSine"
+            },
+            "0.52": {
+              "vector": [
+                40,
+                -20,
+                5
+              ],
+              "easing": "easeInQuad"
+            },
+            "0.62": {
+              "vector": [
+                8,
+                -6,
+                0
+              ],
+              "easing": "easeOutQuad"
+            },
+            "0.85": {
+              "vector": [
+                0,
+                0,
+                0
+              ],
+              "easing": "easeInOutSine"
+            }
+          }
+        },
+        "right_hand": {
+          "rotation": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.1": {
+              "vector": [
+                0,
+                0,
+                15
+              ],
+              "easing": "easeOutQuad"
+            },
+            "0.3": {
+              "vector": [
+                55,
+                0,
+                30
+              ],
+              "easing": "easeInOutSine"
+            },
+            "0.42": {
+              "vector": [
+                70,
+                0,
+                30
+              ],
+              "easing": "easeOutSine"
+            },
+            "0.52": {
+              "vector": [
+                5,
+                0,
+                15
+              ],
+              "easing": "easeInQuad"
+            },
+            "0.62": {
+              "vector": [
+                -12,
+                0,
+                0
+              ],
+              "easing": "easeOutQuad"
+            },
+            "0.85": {
+              "vector": [
+                0,
+                0,
+                0
+              ],
+              "easing": "easeInOutSine"
+            }
+          }
+        },
+        "held_egg": {
+          "scale": {
+            "0.0": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.03": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            },
+            "0.12": {
+              "vector": [
+                1,
+                1,
+                1
+              ],
+              "easing": "easeOutBack"
+            },
+            "0.49": {
+              "vector": [
+                1,
+                1,
+                1
+              ]
+            },
+            "0.5": {
+              "vector": [
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      }
     }
   },
   "geckolib_format_version": 2

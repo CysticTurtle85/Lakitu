@@ -6,11 +6,13 @@ import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.cystic.lakitu.entity.LakituEntity;
 import net.cystic.lakitu.entity.SpinyEggEntity;
 import net.cystic.lakitu.item.CloudData;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import org.slf4j.Logger;
@@ -30,6 +32,8 @@ public final class Lakitu {
     public static Supplier<EntityType<SpinyEggEntity>> spinyEgg;
     public static Supplier<Item> cloudItem;
     public static Supplier<Item> spawnEgg;
+    /** Shows a cloud rider their altitude speed ({@link AltitudeEffect}). */
+    public static Supplier<Holder<MobEffect>> altitudeEffect;
 
     private Lakitu() {}
 

@@ -3,7 +3,7 @@ package net.cystic.lakitu.entity;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import net.cystic.lakitu.AltitudeBonus;
+import net.cystic.lakitu.AltitudeSpeed;
 import net.cystic.lakitu.Lakitu;
 import net.cystic.lakitu.LakituConfig;
 import net.cystic.lakitu.item.CloudData;
@@ -26,6 +26,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -64,7 +65,8 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 public class LakituCloudEntity extends Mob implements GeoEntity {
     private static final EntityDataAccessor<Float> DATA_HORIZONTAL_SPEED = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_VERTICAL_SPEED = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<Float> DATA_SPEED_MULTIPLIER = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_ALTITUDE_TOP = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> DATA_ALTITUDE_BOTTOM = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Vector3fc> DATA_LAUNCH = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.VECTOR3);
     private static final EntityDataAccessor<Integer> DATA_LAUNCH_TICKS = SynchedEntityData.defineId(LakituCloudEntity.class, EntityDataSerializers.INT);
 
@@ -90,6 +92,8 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         if (!level.isClientSide()) {
             this.entityData.set(DATA_HORIZONTAL_SPEED, (float) LakituConfig.values.cloudHorizontalSpeed);
             this.entityData.set(DATA_VERTICAL_SPEED, (float) LakituConfig.values.cloudVerticalSpeed);
+            this.entityData.set(DATA_ALTITUDE_TOP, (float) LakituConfig.values.altitudeSpeedAtBuildLimit);
+            this.entityData.set(DATA_ALTITUDE_BOTTOM, (float) LakituConfig.values.altitudeSpeedAtBottom);
         }
     }
 
@@ -145,7 +149,8 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         super.defineSynchedData(entityData);
         entityData.define(DATA_HORIZONTAL_SPEED, 8.0F);
         entityData.define(DATA_VERTICAL_SPEED, 5.0F);
-        entityData.define(DATA_SPEED_MULTIPLIER, 1.0F);
+        entityData.define(DATA_ALTITUDE_TOP, 3.0F);
+        entityData.define(DATA_ALTITUDE_BOTTOM, 0.5F);
         entityData.define(DATA_LAUNCH, new Vector3f());
         entityData.define(DATA_LAUNCH_TICKS, 0);
     }
@@ -183,12 +188,13 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
 
     @Override
     public void travel(Vec3 input) {
-        if (!(this.getControllingPassenger() instanceof Player)) {
+        if (!(this.getControllingPassenger() instanceof Player player)) {
             this.setDeltaMovement(this.getDeltaMovement().scale(0.8));
             this.move(MoverType.SELF, this.getDeltaMovement());
             return;
         }
-        float multiplier = this.entityData.get(DATA_SPEED_MULTIPLIER);
+        // Altitude times the rider's own Speed/Slowness, from the cloud's exact height every tick: no steps.
+        double multiplier = this.altitudeMultiplier() * AltitudeSpeed.riderFactor(player);
         double horizontal = this.entityData.get(DATA_HORIZONTAL_SPEED) * multiplier / 20.0;
         double vertical = this.entityData.get(DATA_VERTICAL_SPEED) * multiplier / 20.0;
         double strafe = input.x;
@@ -226,11 +232,8 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
     @Override
     protected void removePassenger(Entity passenger) {
         super.removePassenger(passenger);
-        if (!this.level().isClientSide() && passenger instanceof LivingEntity living) {
-            AltitudeBonus.removeHealth(living);
-            AltitudeBonus.removeHealth(this);
-            this.entityData.set(DATA_SPEED_MULTIPLIER, 1.0F);
-        }
+        if (!this.level().isClientSide() && passenger instanceof LivingEntity living)
+            living.removeEffect(Lakitu.altitudeEffect.get());
     }
 
     // --- Server upkeep ------------------------------------------------------------------------
@@ -257,10 +260,7 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
             return;
         }
 
-        double share = AltitudeBonus.share(level, this.getY());
-        AltitudeBonus.applyHealth(this, share);
-        AltitudeBonus.applyHealth(rider, share);
-        this.entityData.set(DATA_SPEED_MULTIPLIER, AltitudeBonus.speedMultiplier(share));
+        this.showAltitude(rider);
 
         LakituConfig config = LakituConfig.values;
         if (this.tickCount % LakituConfig.ticks(config.rainDamageIntervalSeconds) == 0 && isInRain(this))
@@ -274,6 +274,20 @@ public class LakituCloudEntity extends Mob implements GeoEntity {
         float fraction = this.getHealth() / this.getMaxHealth();
         if (this.isAlive() && Math.abs(fraction - this.savedHealth) > 0.001F)
             this.saveHealth(stack, level);
+    }
+
+    /** Speed multiplier for the cloud's current height (rider's Speed and Slowness not included). */
+    public double altitudeMultiplier() {
+        return AltitudeSpeed.multiplier(this.level(), this.getY(), this.entityData.get(DATA_ALTITUDE_TOP), this.entityData.get(DATA_ALTITUDE_BOTTOM));
+    }
+
+    /** Keeps the rider's Altitude effect showing this height's multiplier (to a tenth; it changes only then). */
+    private void showAltitude(ServerPlayer rider) {
+        int amplifier = AltitudeSpeed.amplifier(this.altitudeMultiplier());
+        MobEffectInstance shown = rider.getEffect(Lakitu.altitudeEffect.get());
+        if (shown == null || shown.getAmplifier() != amplifier || !shown.isInfiniteDuration())
+            // forceAddEffect: addEffect wouldn't lower an effect's amplifier. Ambient (beacon-style frame), no particles.
+            rider.forceAddEffect(new MobEffectInstance(Lakitu.altitudeEffect.get(), MobEffectInstance.INFINITE_DURATION, amplifier, true, false, true), this);
     }
 
     /** Server: sends the cloud back into its item. {@code deliberate} is a dismount with the item (Slow Falling). */

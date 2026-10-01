@@ -10,5 +10,7 @@
   "message.lakitu.cloud_in_use": "This cloud is already out",
   "death.attack.lakitu.rain": "%1$s melted in the rain",
   "death.attack.lakitu.rain.player": "%1$s melted in the rain while fighting %2$s",
-  "entity.lakitu.spiny_egg": "Spiny Egg"
+  "entity.lakitu.spiny_egg": "Spiny Egg",
+  "effect.lakitu.altitude": "Altitude",
+  "effect.lakitu.altitude.speed": "%s× cloud speed"
 }

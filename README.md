@@ -5,10 +5,12 @@ A Minecraft Java Edition mod inspired by Lakitu from the Mario games.
 - **Lakitu Cloud**: use the item to summon a cloud and ride it. WASD flies horizontally the way you're looking,
   Space rises, Shift sinks; use the item again to dismount (with Slow Falling until you land). The cloud has its own
   health, kept on the item and slowly healing while stowed. Rain melts it and lava burns it; if it dies, the item
-  needs 30 seconds to re-form it. The higher you fly, the more max health you and the cloud get and the faster it
-  flies (flat bonuses in the Nether and End). You stay on the cloud through portals.
-- **Lakitu**: a mob riding its own cloud, found high in the mountains. It throws spiny eggs at players on foot and
-  leaves cloud riders alone. Killing one can drop a Lakitu Cloud.
+  needs 30 seconds to re-form it. Height changes its speed smoothly: normal at sea level, up to 3× at the build
+  limit, down to 0.5× at bedrock, for climbing and sinking too, with Speed and Slowness on top. An Altitude effect
+  shows the current multiplier (e.g. "2.4× cloud speed"). You stay on the cloud through portals.
+- **Lakitu**: a mob riding its own cloud, found high in the mountains. It pulls spiny eggs out of its cloud and
+  throws them overhead at players on foot (5 damage), and leaves cloud riders alone. Killing one can drop a Lakitu
+  Cloud.
 
 Every number is configurable in `config/lakitu.json`. See [DECISIONS.md](DECISIONS.md) for the full design.
 

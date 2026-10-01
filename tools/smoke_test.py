@@ -2,9 +2,10 @@
 
     python tools/smoke_test.py 26.3-fabric 26.3-neoforge
 
-Summon + ride, Space/Shift/W movement, Shift doesn't dismount, altitude bonus, dismount (Slow Falling, bonus removed),
-health saved on the item, rain damage, death cooldown, a Lakitu that ignores riders but throws spiny eggs at players
-on foot, and riding the cloud through a Nether portal. Screenshots go to tools/smoke/.
+Summon + ride, Space/Shift/W movement, Shift doesn't dismount, altitude speed (the Altitude effect's number, W at
+y~200, Speed II on top), dismount (Slow Falling, effect gone), health saved on the item, rain damage, death cooldown,
+a Lakitu that ignores riders but throws spiny eggs at players on foot (with screenshots of the throw), and riding the
+cloud through a Nether portal (altitude speed there, by the Nether's own sea level). Screenshots go to tools/smoke/.
 """
 import math
 import re
@@ -18,6 +19,15 @@ PLAYER = "@a[limit=1]"
 # Components of the held item: `item replace ... weapon.mainhand` fills hotbar slot 0, the selected one.
 # (26.x player data has no SelectedItem.)
 HELD = 'Inventory[{Slot:0b}].components."lakitu:cloud"'
+ALTITUDE = 'active_effects[{id:"lakitu:altitude"}].amplifier'
+SHOWS_ALTITUDE = 'execute if entity @a[nbt={active_effects:[{id:"lakitu:altitude"}]}]'
+
+
+def expected_multiplier(y, sea_level, bottom, build_limit):
+    """LakituConfig defaults: 1x at sea level, 3x at the build limit, 0.5x at the bottom, linear in between."""
+    if y >= sea_level:
+        return 1 + 2 * min(1.0, (y - sea_level) / (build_limit - sea_level))
+    return 1 - 0.5 * min(1.0, (sea_level - y) / max(1, sea_level - bottom))
 
 
 def scene(game):
@@ -59,6 +69,7 @@ def scene(game):
     game.hold("forward", 1.0)
     time.sleep(0.8)
     ahead = cloud_pos()
+    forward = None
     if game.check("cloud position readable", start and up and down and ahead):
         rise, sink = round(up[1] - start[1], 2), round(up[1] - down[1], 2)
         forward = round(math.dist((down[0], down[2]), (ahead[0], ahead[2])), 2)
@@ -67,27 +78,52 @@ def scene(game):
         game.check("shift sinks", sink >= 2.0)
         game.check("W moves ~8", 4.0 <= forward <= 12.0)
 
-    # Teleporting the rider away makes the cloud vanish; summon a new one high up for the altitude bonus.
+    # Teleporting the rider away makes the cloud vanish; summon a new one high up. Altitude speed: a superflat world's
+    # sea level is -63 (bottom -64, build limit 320), so the ground above counts as 1x and y~200 as ~2.4x.
     game.run("tp @a 0 200 0 0 0")
     time.sleep(0.3)
     game.use()
     game.check("tp: cloud re-summoned high up", riding())
     time.sleep(1)
+    high_y = (cloud_pos() or [0, None])[1]
+    shown = game.data(PLAYER, ALTITUDE)
+    wanted = expected_multiplier(high_y, -63, -64, 320) if high_y is not None else None
     player_max = mctest.number(game.run(f"attribute {PLAYER} minecraft:max_health get"))
-    cloud_max = mctest.number(game.run(f"attribute {CLOUD_SEL} minecraft:max_health get"))
-    game.values.update({"player max health at y~200": player_max, "cloud max health at y~200": cloud_max})
-    game.check("altitude bonus on player (~25)", player_max is not None and 24.0 <= player_max <= 27.0)
-    game.check("altitude bonus on cloud (~50)", cloud_max is not None and 48.0 <= cloud_max <= 54.0)
+    game.values.update({"cloud y up high": high_y, "Altitude effect (tenths)": shown, "expected multiplier": wanted and round(wanted, 3),
+                        "player max health up high": player_max})
+    game.check("altitude effect shows the multiplier (~2.4)", shown is not None and wanted is not None and abs(shown - round(wanted * 10)) <= 1)
+    game.check("no health bonus any more", player_max == 20.0)
+    game.view("FIRST_PERSON")
+    game.drive("inventory")
+    time.sleep(1.5)
+    game.shot("3b-altitude-effect")
+    game.drive("close")
+    time.sleep(0.5)
+    start = cloud_pos()
+    game.hold("forward", 1.0)
+    time.sleep(0.8)
+    end = cloud_pos()
+    high = round(math.dist((start[0], start[2]), (end[0], end[2])), 2) if start and end else None
+    # Speed II (+40%) multiplies on top.
+    game.run("effect give @a minecraft:speed 30 1 true")
+    time.sleep(0.5)
+    start = cloud_pos()
+    game.hold("forward", 1.0)
+    time.sleep(0.8)
+    end = cloud_pos()
+    boosted = round(math.dist((start[0], start[2]), (end[0], end[2])), 2) if start and end else None
+    game.run("effect clear @a minecraft:speed")
+    game.values.update({"forward (1 s W) up high": high, "forward (1 s W) up high with Speed II": boosted})
+    game.check("W up high: ~2.4x as far as on the ground", high and forward and 2.0 <= high / forward <= 2.8)
+    game.check("Speed II compounds (~1.4x more)", high and boosted and 1.25 <= boosted / high <= 1.55)
 
-    # Dismount with the item: Slow Falling, bonus gone.
+    # Dismount with the item: Slow Falling, Altitude effect gone.
     slow_falling = 'execute if entity @a[nbt={active_effects:[{id:"minecraft:slow_falling"}]}]'
     game.use()
     game.check("dismount: not riding", not riding())
     game.check("dismount: cloud gone", clouds() == 0)
     game.check("dismount: slow falling", game.passed(slow_falling))
-    after = mctest.number(game.run(f"attribute {PLAYER} minecraft:max_health get"))
-    game.values["player max health after dismount"] = after
-    game.check("dismount: bonus removed", after == 20.0)
+    game.check("dismount: altitude effect removed", not game.passed(SHOWS_ALTITUDE))
     game.run("tp @a 0 -60 0 0 0")
     time.sleep(3)
     game.check("landing removes slow falling", not game.passed(slow_falling))
@@ -134,19 +170,25 @@ def scene(game):
     time.sleep(1)
     game.shot("4-cooldown")
 
-    # ...but throws spiny eggs at a player on foot.
+    # ...but throws spiny eggs at a player on foot (5 damage each, 3.5 on this server's Easy).
     game.run("tp @a 0 -60 0 0 0")
     game.run("effect give @a minecraft:instant_health 1 5")
     # An egg is airborne for well under a second, so look often.
     eggs_seen = 0
-    for _ in range(50):
+    for _ in range(35):
         time.sleep(0.2)
         eggs_seen += game.count("@e[type=lakitu:spiny_egg]") > 0
-    game.shot("5-attacked")
     walker = game.data(PLAYER, "Health")
-    game.values.update({"walker health after 10 s": walker, "spiny eggs seen": eggs_seen})
+    game.values.update({"walker health after 7 s": walker, "spiny eggs seen": eggs_seen})
     game.check("lakitu throws spiny eggs", eggs_seen > 0)
     game.check("lakitu attacks walker", walker is not None and walker < 20.0)
+    # Look up at it for a burst of screenshots: one throw (egg held overhead, then thrown) every 2 s.
+    game.run("effect give @a minecraft:resistance 30 4 true")
+    game.run("effect give @a minecraft:instant_health 1 5")
+    for i in range(8):
+        game.run("execute as @a at @s facing entity @e[type=lakitu:lakitu,limit=1] feet run tp @s ~ ~ ~ ~ ~")
+        game.shot(f"5-throw-{i + 1}")
+        time.sleep(0.15)
     game.run("kill @e[type=lakitu:lakitu]")
     game.run("kill @e[type=lakitu:spiny_egg]")
 
@@ -158,7 +200,8 @@ def scene(game):
     game.shot("6-spiny-egg")
     game.run("kill @e[type=lakitu:spiny_egg]")
 
-    # Ride through a Nether portal: cloud and rider arrive together, with the Nether's flat bonus.
+    # Ride through a Nether portal: cloud and rider arrive together; altitude speed by the Nether's sea level (32,
+    # bottom 0, build limit 256).
     game.run(f"item replace entity @a weapon.mainhand with {CLOUD}")  # a fresh cloud (the other one is re-forming)
     game.run("tp @a 0.5 -60 0.5 0 0")
     time.sleep(1)
@@ -173,9 +216,12 @@ def scene(game):
     game.check("portal: still riding", riding())
     game.check("portal: one cloud", clouds() == 1)
     time.sleep(1)
-    nether_max = mctest.number(game.run(f"attribute {PLAYER} minecraft:max_health get"))
-    game.values["player max health in the Nether"] = nether_max
-    game.check("portal: Nether bonus (+25% = 25)", nether_max == 25.0)
+    nether_y = (cloud_pos() or [0, None])[1]
+    shown = game.data(PLAYER, ALTITUDE)
+    wanted = expected_multiplier(nether_y, 32, 0, 256) if nether_y is not None else None
+    game.values.update({"cloud y in the Nether": nether_y, "Altitude effect in the Nether (tenths)": shown,
+                        "expected multiplier in the Nether": wanted and round(wanted, 3)})
+    game.check("portal: altitude effect by the Nether's sea level", shown is not None and wanted is not None and abs(shown - round(wanted * 10)) <= 1)
     game.view("THIRD_PERSON_BACK")
     game.shot("7-nether")
 
