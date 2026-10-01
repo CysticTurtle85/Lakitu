@@ -20,15 +20,16 @@ Lakitus now drift over the mountains on their clouds, throwing Spiny Eggs at any
 
 ## 🚀Future Updates
 - **Spinies:** Spiny Eggs thrown by Lakitus hatch into Spinies where they land
-- More Minecraft versions, from 1.20.1 up, including Forge
 
 ## 📦Supported Versions
 | Minecraft | Loaders |
 |---|---|
-| 26.3 | Fabric, Quilt, NeoForge |
+| 26.3, 26.2, 26.1.2 | Fabric, Quilt, NeoForge |
+| 1.21.11, 1.21.10, 1.21.8, 1.21.5, 1.21.4, 1.21.1 (and 1.21) | Fabric, Quilt, NeoForge |
+| 1.20.1 (and 1.20) | Fabric, Quilt, Forge |
 
 ## 🔗Dependencies
-This mod makes use of [GeckoLib](https://modrinth.com/mod/geckolib), plus [Fabric API](https://modrinth.com/mod/fabric-api) on Fabric and Quilt.
+This mod makes use of [GeckoLib](https://modrinth.com/mod/geckolib), plus [Fabric API](https://modrinth.com/mod/fabric-api) on Fabric and Quilt. Your launcher installs them for you.
 
 ## 🌟Other
 Unofficial fan-made mod, not affiliated with Nintendo; Lakitu is inspired by the Mario games. Found a bug or want another version? Open an issue on [GitHub](https://github.com/CysticTurtle85/Lakitu/issues).

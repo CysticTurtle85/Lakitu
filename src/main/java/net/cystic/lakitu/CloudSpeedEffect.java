@@ -20,7 +20,20 @@ public class CloudSpeedEffect extends MobEffect {
     }
 
     public static boolean is(MobEffectInstance effect) {
+        //#if MC >= 1.20.5
         return effect.getEffect().value() instanceof CloudSpeedEffect;
+        //#else
+        return effect.getEffect() instanceof CloudSpeedEffect;
+        //#endif
+    }
+
+    /** Just the effect's name, without a level numeral. */
+    public static Component name(MobEffectInstance effect) {
+        //#if MC >= 1.20.5
+        return effect.getEffect().value().getDisplayName();
+        //#else
+        return effect.getEffect().getDisplayName();
+        //#endif
     }
 
     /** The line under the name: "2.4× cloud speed". */
@@ -28,6 +41,7 @@ public class CloudSpeedEffect extends MobEffect {
         return Component.translatable("effect.lakitu.cloud_speed", AltitudeSpeed.format(effect.getAmplifier()));
     }
 
+    //#if MC >= 1.20.5
     @Override
     public boolean shouldApplyEffectTickThisTick(int tickCount, int amplification) {
         return true;
@@ -35,7 +49,12 @@ public class CloudSpeedEffect extends MobEffect {
 
     /** Returning false removes the effect: a crash or a mod can't leave it on someone who isn't riding. */
     @Override
+    //#if MC >= 1.21.2
     public boolean applyEffectTick(ServerLevel level, LivingEntity mob, int amplification) {
+    //#else
+    public boolean applyEffectTick(LivingEntity mob, int amplification) {
+    //#endif
         return LakituCloudEntity.isRiding(mob);
     }
+    //#endif
 }

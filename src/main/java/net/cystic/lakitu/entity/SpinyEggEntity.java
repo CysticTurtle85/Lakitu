@@ -46,13 +46,19 @@ public class SpinyEggEntity extends ThrowableProjectile implements GeoEntity {
     public static EntityType.Builder<SpinyEggEntity> builder() {
         return EntityType.Builder.<SpinyEggEntity>of(SpinyEggEntity::new, MobCategory.MISC)
                 .sized(0.4F, 0.4F)
+                //#if MC >= 1.21.2
                 .noLootTable()
+                //#endif
                 .clientTrackingRange(4)
                 .updateInterval(10);
     }
 
     @Override
+    //#if MC >= 1.20.5
     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+    //#else
+    protected void defineSynchedData() {
+    //#endif
     }
 
     @Override
@@ -76,7 +82,11 @@ public class SpinyEggEntity extends ThrowableProjectile implements GeoEntity {
         super.onHit(hitResult);
         if (this.level() instanceof ServerLevel level) {
             // Cracks open: shell bits and a crunch.
+            //#if MC >= 1.21.2
             level.sendParticles(new DustParticleOptions(0xD62020, 1.2F), this.getX(), this.getY() + 0.2, this.getZ(), 10, 0.15, 0.15, 0.15, 0.0);
+            //#else
+            level.sendParticles(new DustParticleOptions(new org.joml.Vector3f(0.84F, 0.13F, 0.13F), 1.2F), this.getX(), this.getY() + 0.2, this.getZ(), 10, 0.15, 0.15, 0.15, 0.0);
+            //#endif
             level.sendParticles(ParticleTypes.CRIT, this.getX(), this.getY() + 0.2, this.getZ(), 6, 0.1, 0.1, 0.1, 0.2);
             this.playSound(LakituSounds.SPINY_EGG_CRACK, 1.0F, 0.9F + this.random.nextFloat() * 0.2F);
             this.discard();
@@ -85,7 +95,11 @@ public class SpinyEggEntity extends ThrowableProjectile implements GeoEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        //#if MC >= 1.21.5
         controllers.add(new AnimationController<SpinyEggEntity>("spin", test -> test.setAndContinue(SPIN)));
+        //#else
+        controllers.add(new AnimationController<>(this, "spin", 0, state -> state.setAndContinue(SPIN)));
+        //#endif
     }
 
     @Override

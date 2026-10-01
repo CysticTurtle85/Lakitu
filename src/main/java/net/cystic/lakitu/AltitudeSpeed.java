@@ -24,10 +24,18 @@ public final class AltitudeSpeed {
             return inEnd;
         double seaLevel = level.getSeaLevel();
         if (y >= seaLevel) {
+            //#if MC >= 1.21.2
             double t = (y - seaLevel) / Math.max(1.0, level.getMaxY() + 1 - seaLevel);
+            //#else
+            double t = (y - seaLevel) / Math.max(1.0, level.getMaxBuildHeight() - seaLevel);
+            //#endif
             return Mth.lerp(Mth.clamp(t, 0.0, 1.0), 1.0, atBuildLimit);
         }
+        //#if MC >= 1.21.2
         double t = (seaLevel - y) / Math.max(1.0, seaLevel - level.getMinY());
+        //#else
+        double t = (seaLevel - y) / Math.max(1.0, seaLevel - level.getMinBuildHeight());
+        //#endif
         return Mth.lerp(Mth.clamp(t, 0.0, 1.0), 1.0, atBottom);
     }
 

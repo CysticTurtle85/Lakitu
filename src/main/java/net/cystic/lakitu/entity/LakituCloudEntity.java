@@ -27,7 +27,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+//#if MC >= 1.20.5
 import net.minecraft.core.Holder;
+//#endif
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
@@ -41,8 +43,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+//#if MC >= 1.21.6
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+//#else
+import net.minecraft.nbt.CompoundTag;
+//#endif
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 import software.bernie.geckolib.animatable.GeoEntity;
@@ -106,10 +112,20 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
                 // Hitbox from art/lakitu.bbmodel's cloud group: the body is 1.25 blocks across (side puffs reach 1.4) and
                 // the seat is 12 px up, where the rider's hips go (passenger point 0.6 minus the player's own 0.6 offset).
                 .sized(1.25F, 0.75F)
+                //#if MC >= 1.20.5
                 .passengerAttachments(0.6F)
+                //#endif
                 .noSummon()
                 .clientTrackingRange(10);
     }
+
+    //#if MC < 1.20.5
+    /** The rider's feet level with the cloud's, as passengerAttachments(0.6) does later (a player sits 0.35 down). */
+    @Override
+    protected double legacySeatOffset() {
+        return 0.35;
+    }
+    //#endif
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 40.0);
@@ -146,9 +162,16 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
         return cloudId != null && LakituCloudItem.data(stack).cloudId().filter(cloudId::equals).isPresent();
     }
 
+    //#if MC >= 1.20.5
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
         super.defineSynchedData(entityData);
+    //#else
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        SynchedEntityData entityData = this.entityData;
+    //#endif
         entityData.define(DATA_ALTITUDE_TOP, 3.0F);
         entityData.define(DATA_ALTITUDE_BOTTOM, 0.5F);
         entityData.define(DATA_ALTITUDE_NETHER, 0.5F);
@@ -216,7 +239,7 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
 
         // Replaces vanilla's "Press Shift to Dismount", which is wrong for the cloud.
         if (this.tickCount == 5)
-            rider.sendOverlayMessage(Component.translatable("message.lakitu.cloud_controls"));
+            Lakitu.actionBar(rider, Component.translatable("message.lakitu.cloud_controls"));
 
         // It heals slowly while ridden too.
         LakituConfig healing = LakituConfig.values;
@@ -241,7 +264,11 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
     }
 
     /** Keeps a cloud-speed effect on the rider showing this multiplier (to a tenth; it's only re-sent then). */
+    //#if MC >= 1.20.5
     private void showSpeed(ServerPlayer rider, Holder<MobEffect> effect, double multiplier) {
+    //#else
+    private void showSpeed(ServerPlayer rider, MobEffect effect, double multiplier) {
+    //#endif
         int amplifier = AltitudeSpeed.amplifier(multiplier);
         MobEffectInstance shown = rider.getEffect(effect);
         if (shown == null || shown.getAmplifier() != amplifier || !shown.isInfiniteDuration())
@@ -279,8 +306,8 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
         Player rider = this.riderOrLastRider(level);
         ItemStack stack = rider != null ? this.findItem(rider) : ItemStack.EMPTY;
         if (!stack.isEmpty()) {
-            stack.set(Lakitu.cloudData.get(), LakituCloudItem.data(stack).died(now, now + cooldown));
-            rider.getCooldowns().addCooldown(CloudData.cooldownGroup(this.cloudId), cooldown);
+            CloudData.save(stack, LakituCloudItem.data(stack).died(now, now + cooldown));
+            CloudData.startCooldown(rider, this.cloudId, cooldown);
         } else if (this.cloudId != null) {
             PENDING_DEATHS.put(this.cloudId, now + cooldown);
         }
@@ -289,6 +316,7 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
         this.poof(level);
     }
 
+    //#if MC >= 1.21.6
     @Override
     protected void addAdditionalSaveData(ValueOutput output) {
         super.addAdditionalSaveData(output);
@@ -299,21 +327,50 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
     protected void readAdditionalSaveData(ValueInput input) {
         super.readAdditionalSaveData(input);
         this.cloudId = input.read("cloud_id", UUIDUtil.CODEC).orElse(null);
+    //#elif MC >= 1.21.5
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.storeNullable("cloud_id", UUIDUtil.CODEC, this.cloudId);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        this.cloudId = tag.read("cloud_id", UUIDUtil.CODEC).orElse(null);
+    //#else
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        if (this.cloudId != null)
+            tag.putUUID("cloud_id", this.cloudId);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        this.cloudId = tag.hasUUID("cloud_id") ? tag.getUUID("cloud_id") : null;
+    //#endif
         this.savedHealth = this.getHealth() / this.getMaxHealth();
         if (this.cloudId != null && !this.level().isClientSide())
             ACTIVE.put(this.cloudId, this);
     }
 
     @Override
+    //#if MC >= 1.21.2
     public void onRemoval(RemovalReason reason) {
         super.onRemoval(reason);
+    //#else
+    public void remove(RemovalReason reason) {
+        super.remove(reason);
+    //#endif
         if (this.cloudId != null && !this.level().isClientSide())
             ACTIVE.remove(this.cloudId, this);
     }
 
     private void saveHealth(ItemStack stack, ServerLevel level) {
         float fraction = this.getHealth() / this.getMaxHealth();
-        stack.set(Lakitu.cloudData.get(), LakituCloudItem.data(stack).withHealth(fraction, level.getGameTime()));
+        CloudData.save(stack, LakituCloudItem.data(stack).withHealth(fraction, level.getGameTime()));
         this.savedHealth = fraction;
     }
 
@@ -334,11 +391,19 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
     // --- Damage -------------------------------------------------------------------------------
 
     @Override
+    //#if MC >= 1.21.2
     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+    //#else
+    public boolean hurt(DamageSource source, float damage) {
+    //#endif
         // The rider can't hurt their own cloud (e.g. by swinging at something below them).
         if (source.getEntity() != null && this.hasPassenger(source.getEntity()))
             return false;
+        //#if MC >= 1.21.2
         return super.hurtServer(level, source, damage);
+        //#else
+        return super.hurt(source, damage);
+        //#endif
     }
 
     // --- Misc mob behaviour -----------------------------------------------------------------------
@@ -349,7 +414,11 @@ public class LakituCloudEntity extends FlyingMount implements GeoEntity {
     }
 
     @Override
+    //#if MC >= 1.21
     public boolean canBeLeashed() {
+    //#else
+    public boolean canBeLeashed(Player player) {
+    //#endif
         return false;
     }
 

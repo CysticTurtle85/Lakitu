@@ -1,43 +1,19 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_cactus": {
-      "conditions": {
-        "items": [
-          {
-            "items": "minecraft:cactus"
-          }
-        ]
-      },
-      "trigger": "minecraft:inventory_changed"
-    },
-    "has_spiny_egg": {
-      "conditions": {
-        "items": [
-          {
-            "items": "lakitu:spiny_egg"
-          }
-        ]
-      },
-      "trigger": "minecraft:inventory_changed"
-    },
-    "has_the_recipe": {
-      "conditions": {
-        "recipes": "lakitu:spiny_egg"
-      },
-      "trigger": "minecraft:recipe_unlocked"
-    }
+//#if MC >= 1.20.5
+    "has_cactus": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": "minecraft:cactus" } ] } },
+    "has_spiny_egg": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": "lakitu:spiny_egg" } ] } },
+//#else
+    "has_cactus": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": [ "minecraft:cactus" ] } ] } },
+    "has_spiny_egg": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": [ "lakitu:spiny_egg" ] } ] } },
+//#endif
+//#if MC >= 26.3
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "lakitu:spiny_egg" } }
+//#else
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipe": "lakitu:spiny_egg" } }
+//#endif
   },
-  "requirements": [
-    [
-      "has_the_recipe",
-      "has_cactus",
-      "has_spiny_egg"
-    ]
-  ],
-  "rewards": {
-    "recipes": [
-      "lakitu:spiny_egg"
-    ]
-  }
+  "requirements": [ [ "has_the_recipe", "has_cactus", "has_spiny_egg" ] ],
+  "rewards": { "recipes": [ "lakitu:spiny_egg" ] }
 }

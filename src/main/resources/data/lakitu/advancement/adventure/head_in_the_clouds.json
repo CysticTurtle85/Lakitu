@@ -1,30 +1,27 @@
 {
   "parent": "lakitu:adventure/lakitu_down",
   "display": {
-    "icon": {
-      "id": "lakitu:lakitu_cloud"
-    },
-    "title": {
-      "translate": "advancements.lakitu.head_in_the_clouds.title"
-    },
-    "description": {
-      "translate": "advancements.lakitu.head_in_the_clouds.description"
-    },
+//#if MC >= 1.20.5
+    "icon": { "id": "lakitu:lakitu_cloud" },
+//#else
+    "icon": { "item": "lakitu:lakitu_cloud" },
+//#endif
+    "title": { "translate": "advancements.lakitu.head_in_the_clouds.title" },
+    "description": { "translate": "advancements.lakitu.head_in_the_clouds.description" },
     "frame": "task"
   },
   "criteria": {
     "rode_cloud": {
       "trigger": "minecraft:started_riding",
       "conditions": {
-        "player": {
-          "type": "minecraft:entity_properties",
-          "entity": "this",
-          "predicate": {
-            "minecraft:vehicle": {
-              "minecraft:entity_type": "lakitu:lakitu_cloud"
-            }
-          }
-        }
+        "player":
+//#if MC >= 26.3
+        { "type": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:vehicle": { "minecraft:entity_type": "lakitu:lakitu_cloud" } } }
+//#elif MC >= 26.2
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:vehicle": { "minecraft:entity_type": "lakitu:lakitu_cloud" } } } ]
+//#else
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "vehicle": { "type": "lakitu:lakitu_cloud" } } } ]
+//#endif
       }
     }
   }

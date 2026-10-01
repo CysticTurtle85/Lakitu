@@ -1,5 +1,6 @@
 package net.cystic.lakitu.flight;
 
+import net.cystic.lakitu.mixin.FlyingMountJumpAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -44,10 +45,18 @@ public abstract class FlyingMount extends Mob {
     private static final EntityDataAccessor<Float> DATA_VERTICAL_SPEED = SynchedEntityData.defineId(FlyingMount.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_ACCELERATION = SynchedEntityData.defineId(FlyingMount.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_GLIDE = SynchedEntityData.defineId(FlyingMount.class, EntityDataSerializers.FLOAT);
+    //#if MC >= 1.21.11
     private static final EntityDataAccessor<Vector3fc> DATA_LAUNCH = SynchedEntityData.defineId(FlyingMount.class, EntityDataSerializers.VECTOR3);
+    //#else
+    private static final EntityDataAccessor<Vector3f> DATA_LAUNCH = SynchedEntityData.defineId(FlyingMount.class, EntityDataSerializers.VECTOR3);
+    //#endif
     private static final EntityDataAccessor<Integer> DATA_LAUNCH_TICKS = SynchedEntityData.defineId(FlyingMount.class, EntityDataSerializers.INT);
     /** Vanilla's sprint boost to movement speed; riders can't sprint, but it never counts. */
+    //#if MC >= 1.21
     private static final Identifier SPRINTING = Identifier.withDefaultNamespace("sprinting");
+    //#else
+    private static final java.util.UUID SPRINTING = java.util.UUID.fromString("662A6B8D-DA3E-4C1C-8813-96EA6097278D");
+    //#endif
     /** A critically damped spring is ~95% of the way after this many of its smoothing times. */
     private static final double SETTLE = 2.4;
 
@@ -68,9 +77,16 @@ public abstract class FlyingMount extends Mob {
         this.glideHorizontal = this.glideVertical = settings.glideSeconds() * 20.0 / SETTLE;
     }
 
+    //#if MC >= 1.20.5
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
         super.defineSynchedData(entityData);
+    //#else
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        SynchedEntityData entityData = this.entityData;
+    //#endif
         FlightSettings d = FlightSettings.DEFAULT;
         entityData.define(DATA_HORIZONTAL_SPEED, d.horizontalSpeed());
         entityData.define(DATA_VERTICAL_SPEED, d.verticalSpeed());
@@ -113,8 +129,13 @@ public abstract class FlyingMount extends Mob {
             return 1.0;
         double value = speed.getValue();
         AttributeModifier sprint = speed.getModifier(SPRINTING);
+        //#if MC >= 1.21
         if (sprint != null && sprint.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL)
             value /= 1.0 + sprint.amount();
+        //#else
+        if (sprint != null && sprint.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL)
+            value /= 1.0 + sprint.getAmount();
+        //#endif
         return Math.max(0.0, value / speed.getBaseValue());
     }
 
@@ -149,14 +170,16 @@ public abstract class FlyingMount extends Mob {
         return this.getFirstPassenger() instanceof Player player ? player : super.getControllingPassenger();
     }
 
+    //#if MC >= 1.21.6
     @Override
     public boolean isFlyingVehicle() {
         return true;
     }
+    //#endif
 
     @Override
     protected Vec3 getRiddenInput(Player controller, Vec3 selfInput) {
-        float vertical = (controller.isJumping() ? 1.0F : 0.0F) - (controller.isShiftKeyDown() ? 1.0F : 0.0F);
+        float vertical = (((FlyingMountJumpAccessor) controller).lakitu$isJumping() ? 1.0F : 0.0F) - (controller.isShiftKeyDown() ? 1.0F : 0.0F);
         return new Vec3(controller.xxa, vertical, controller.zza);
     }
 
@@ -270,11 +293,24 @@ public abstract class FlyingMount extends Mob {
         return (1.0F - Mth.cos(ageInTicks * Mth.TWO_PI / (this.look.bobSeconds() * 20.0F))) * 0.5F * this.look.bobBlocks();
     }
 
+    //#if MC >= 1.20.5
     @Override
     protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
         // The rider floats with it.
         return super.getPassengerAttachmentPoint(passenger, dimensions, scale).add(0.0, this.bob(this.tickCount), 0.0);
     }
+    //#else
+    /** Before 1.20.5 there are no passenger attachments: where riders sit, above its feet (a player's own -0.35 is added). */
+    protected double legacySeatOffset() {
+        return this.getBbHeight() * 0.75;
+    }
+
+    @Override
+    public double getPassengersRidingOffset() {
+        // The rider floats with it.
+        return this.legacySeatOffset() + this.bob(this.tickCount);
+    }
+    //#endif
 
     @Override
     public void tick() {

@@ -1,6 +1,7 @@
 package net.cystic.lakitu;
 
 import java.util.List;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 
 /**
@@ -28,6 +29,14 @@ public final class LakituSounds {
             SPINY_EGG_CRACK, CLOUD_SUMMON, CLOUD_DISMISS, CLOUD_HURT, CLOUD_DEATH);
 
     private LakituSounds() {}
+
+    public static Identifier id(SoundEvent sound) {
+        //#if MC >= 1.21.2
+        return sound.location();
+        //#else
+        return sound.getLocation();
+        //#endif
+    }
 
     private static SoundEvent event(String name) {
         return SoundEvent.createVariableRangeEvent(Lakitu.id(name));

@@ -1,28 +1,27 @@
 {
   "parent": "minecraft:adventure/root",
   "display": {
-    "icon": {
-      "id": "lakitu:lakitu_spawn_egg"
-    },
-    "title": {
-      "translate": "advancements.lakitu.lakitu_down.title"
-    },
-    "description": {
-      "translate": "advancements.lakitu.lakitu_down.description"
-    },
+//#if MC >= 1.20.5
+    "icon": { "id": "lakitu:lakitu_spawn_egg" },
+//#else
+    "icon": { "item": "lakitu:lakitu_spawn_egg" },
+//#endif
+    "title": { "translate": "advancements.lakitu.lakitu_down.title" },
+    "description": { "translate": "advancements.lakitu.lakitu_down.description" },
     "frame": "task"
   },
   "criteria": {
     "killed_lakitu": {
       "trigger": "minecraft:player_killed_entity",
       "conditions": {
-        "entity": {
-          "type": "minecraft:entity_properties",
-          "entity": "this",
-          "predicate": {
-            "minecraft:entity_type": "lakitu:lakitu"
-          }
-        }
+        "entity":
+//#if MC >= 26.3
+        { "type": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } }
+//#elif MC >= 26.2
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } } ]
+//#else
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "type": "lakitu:lakitu" } } ]
+//#endif
       }
     }
   }

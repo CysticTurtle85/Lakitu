@@ -1,35 +1,32 @@
 {
   "parent": "lakitu:adventure/head_in_the_clouds",
   "display": {
-    "icon": {
-      "id": "lakitu:spiny_egg"
-    },
-    "title": {
-      "translate": "advancements.lakitu.return_to_sender.title"
-    },
-    "description": {
-      "translate": "advancements.lakitu.return_to_sender.description"
-    },
+//#if MC >= 1.20.5
+    "icon": { "id": "lakitu:spiny_egg" },
+//#else
+    "icon": { "item": "lakitu:spiny_egg" },
+//#endif
+    "title": { "translate": "advancements.lakitu.return_to_sender.title" },
+    "description": { "translate": "advancements.lakitu.return_to_sender.description" },
     "frame": "task"
   },
   "criteria": {
     "hit_lakitu": {
       "trigger": "minecraft:player_hurt_entity",
       "conditions": {
-        "entity": {
-          "type": "minecraft:entity_properties",
-          "entity": "this",
-          "predicate": {
-            "minecraft:entity_type": "lakitu:lakitu"
-          }
-        },
-        "damage": {
-          "type": {
-            "direct_entity": {
-              "minecraft:entity_type": "lakitu:spiny_egg"
-            }
-          }
-        }
+        "entity":
+//#if MC >= 26.3
+        { "type": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } }
+//#elif MC >= 26.2
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } } ]
+//#else
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "type": "lakitu:lakitu" } } ]
+//#endif,
+//#if MC >= 26.2
+        "damage": { "type": { "direct_entity": { "minecraft:entity_type": "lakitu:spiny_egg" } } }
+//#else
+        "damage": { "type": { "direct_entity": { "type": "lakitu:spiny_egg" } } }
+//#endif
       }
     }
   }

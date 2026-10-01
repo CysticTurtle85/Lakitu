@@ -1,38 +1,27 @@
 {
   "parent": "lakitu:adventure/head_in_the_clouds",
   "display": {
-    "icon": {
-      "id": "minecraft:feather"
-    },
-    "title": {
-      "translate": "advancements.lakitu.sky_high.title"
-    },
-    "description": {
-      "translate": "advancements.lakitu.sky_high.description"
-    },
+//#if MC >= 1.20.5
+    "icon": { "id": "minecraft:feather" },
+//#else
+    "icon": { "item": "minecraft:feather" },
+//#endif
+    "title": { "translate": "advancements.lakitu.sky_high.title" },
+    "description": { "translate": "advancements.lakitu.sky_high.description" },
     "frame": "goal"
   },
   "criteria": {
     "at_build_limit": {
       "trigger": "minecraft:location",
       "conditions": {
-        "player": {
-          "type": "minecraft:entity_properties",
-          "entity": "this",
-          "predicate": {
-            "minecraft:vehicle": {
-              "minecraft:entity_type": "lakitu:lakitu_cloud"
-            },
-            "minecraft:location": {
-              "dimension": "minecraft:overworld",
-              "position": {
-                "y": {
-                  "min": 319.0
-                }
-              }
-            }
-          }
-        }
+        "player":
+//#if MC >= 26.3
+        { "type": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:vehicle": { "minecraft:entity_type": "lakitu:lakitu_cloud" }, "minecraft:location": { "dimension": "minecraft:overworld", "position": { "y": { "min": 319.0 } } } } }
+//#elif MC >= 26.2
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:vehicle": { "minecraft:entity_type": "lakitu:lakitu_cloud" }, "minecraft:location": { "dimension": "minecraft:overworld", "position": { "y": { "min": 319.0 } } } } } ]
+//#else
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "vehicle": { "type": "lakitu:lakitu_cloud" }, "location": { "dimension": "minecraft:overworld", "position": { "y": { "min": 319.0 } } } } } ]
+//#endif
       }
     }
   }

@@ -10,7 +10,11 @@ public final class RainCloud {
     /** It stays grey this long after the last drop, so the edge of a storm or a splash doesn't make it flicker. */
     public static final int DRYING_TICKS = 20;
     /** The Lakitu mob's flying-speed modifier while it's a rain cloud. */
+    //#if MC >= 1.21
     public static final Identifier SLOWDOWN = Lakitu.id("rain_cloud");
+    //#else
+    public static final java.util.UUID SLOWDOWN = java.util.UUID.fromString("5b3a0b38-6c1e-4a52-9d7a-2f0c6b1e7a41");
+    //#endif
 
     private RainCloud() {}
 

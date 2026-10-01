@@ -7,7 +7,11 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
+//#if MC >= 26.1
 import net.minecraft.world.inventory.ContainerInput;
+//#else
+import net.minecraft.world.inventory.ClickType;
+//#endif
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
@@ -72,8 +76,13 @@ public final class TestDriver {
             }
             case "click" -> {
                 if (minecraft.player != null && minecraft.gameMode != null)
+                    //#if MC >= 26.1
                     minecraft.gameMode.handleContainerInput(minecraft.player.containerMenu.containerId, Integer.parseInt(args[1]),
                             args.length > 2 && args[2].equals("right") ? 1 : 0, ContainerInput.PICKUP, minecraft.player);
+                    //#else
+                    minecraft.gameMode.handleInventoryMouseClick(minecraft.player.containerMenu.containerId, Integer.parseInt(args[1]),
+                            args.length > 2 && args[2].equals("right") ? 1 : 0, ClickType.PICKUP, minecraft.player);
+                    //#endif
             }
             default -> throw new IllegalArgumentException("unknown test command " + text);
         }

@@ -278,6 +278,13 @@ class Game:
         window("shot", Out=path)
         return path
 
+    def mc_at_least(self, version):
+        """Whether this target's Minecraft version is at least `version` (numeric: 26.1 > 1.21.11)."""
+        mine = [int(x) for x in self.mc.split(".")]
+        other = [int(x) for x in version.split(".")]
+        n = max(len(mine), len(other))
+        return mine + [0] * (n - len(mine)) >= other + [0] * (n - len(other))
+
     def check(self, name, ok):
         self.checks[name] = bool(ok)
         return ok
@@ -327,7 +334,8 @@ def run_target(target, parts):
         game = Game(target, p, Rcon())
         game.run("scoreboard objectives add mctest dummy")
         # 26.x ignores spawn-monsters in server.properties (it's a game rule now); flat worlds spawn slimes.
-        game.run("gamerule spawn_mobs false")
+        # Game rules are snake_case from 26.1 (camelCase before).
+        game.run("gamerule spawn_mobs false" if game.mc_at_least("26.1") else "gamerule doMobSpawning false")
         game.run("kill @e[type=!minecraft:player]")
         game.run("time set noon")
         game.run("weather clear")

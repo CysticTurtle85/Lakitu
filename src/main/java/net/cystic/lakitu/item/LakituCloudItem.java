@@ -8,7 +8,9 @@ import net.cystic.lakitu.LakituConfig;
 import net.cystic.lakitu.LakituSounds;
 import net.cystic.lakitu.entity.LakituCloudEntity;
 import net.minecraft.ChatFormatting;
+//#if MC >= 1.21.2
 import net.minecraft.core.component.DataComponents;
+//#endif
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -26,8 +28,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+//#if MC >= 1.21.5
 import net.minecraft.world.item.component.TooltipDisplay;
+//#else
+import java.util.List;
+//#endif
+//#if MC >= 1.21.2
 import net.minecraft.world.item.component.UseCooldown;
+//#endif
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
@@ -43,7 +51,7 @@ public class LakituCloudItem extends Item {
     }
 
     public static CloudData data(ItemStack stack) {
-        return stack.getOrDefault(Lakitu.cloudData.get(), CloudData.NEW);
+        return CloudData.of(stack);
     }
 
     /** The player's item for this cloud: anywhere in their inventory, or held on the cursor. */
@@ -62,8 +70,26 @@ public class LakituCloudItem extends Item {
         return stack.getItem() instanceof LakituCloudItem && data(stack).cloudId().filter(cloudId::equals).isPresent();
     }
 
+    //#if MC >= 1.21.2
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        return this.useCloud(level, player, hand);
+    }
+    //#else
+    @Override
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        InteractionResult result = this.useCloud(level, player, hand);
+        if (result != InteractionResult.SUCCESS)
+            return net.minecraft.world.InteractionResultHolder.fail(stack);
+        // No use-cooldown component before 1.21.2: summoning and dismissing set the cooldown here.
+        if (!level.isClientSide())
+            data(stack).cloudId().ifPresent(id -> CloudData.startCooldown(player, id, LakituConfig.ticks(LakituConfig.values.cloudUseCooldownSeconds)));
+        return net.minecraft.world.InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+    }
+    //#endif
+
+    private InteractionResult useCloud(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         applyPendingDeath(stack, level);
         CloudData data = data(stack);
@@ -79,7 +105,7 @@ public class LakituCloudItem extends Item {
 
         if (data.isReforming(level.getGameTime())) {
             if (player instanceof ServerPlayer serverPlayer)
-                serverPlayer.sendOverlayMessage(Component.translatable("message.lakitu.cloud_reforming", timeLeft(data, level)));
+                Lakitu.actionBar(serverPlayer, Component.translatable("message.lakitu.cloud_reforming", timeLeft(data, level)));
             return InteractionResult.FAIL;
         }
         if (player.isPassenger())
@@ -89,32 +115,53 @@ public class LakituCloudItem extends Item {
 
         UUID cloudId = data.cloudId().orElseGet(UUID::randomUUID);
         if (LakituCloudEntity.isOut(cloudId)) {
-            player.sendOverlayMessage(Component.translatable("message.lakitu.cloud_in_use"));
+            Lakitu.actionBar(player, Component.translatable("message.lakitu.cloud_in_use"));
             return InteractionResult.FAIL;
         }
+        //#if MC >= 1.21.2
         LakituCloudEntity cloud = Lakitu.cloudEntity.get().create(serverLevel, EntitySpawnReason.MOB_SUMMONED);
+        //#else
+        LakituCloudEntity cloud = Lakitu.cloudEntity.get().create(serverLevel);
+        //#endif
         if (cloud == null)
             return InteractionResult.FAIL;
 
         LakituConfig config = LakituConfig.values;
         Vec3 launch = config.testLaunchOnSummon ? player.getLookAngle().scale(config.testLaunchSpeed / 20.0) : null;
+        //#if MC >= 1.21.5
         cloud.snapTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
+        //#else
+        cloud.moveTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
+        //#endif
         cloud.setUp(cloudId, data.healthAt(level.getGameTime()), launch);
         // Forced: a normal mount fails while Shift is held or for 3 s after any dismount.
-        if (!serverLevel.addFreshEntity(cloud) || !player.startRiding(cloud, true, true)) {
+        //#if MC >= 1.21.9
+        boolean riding = serverLevel.addFreshEntity(cloud) && player.startRiding(cloud, true, true);
+        //#else
+        boolean riding = serverLevel.addFreshEntity(cloud) && player.startRiding(cloud, true);
+        //#endif
+        if (!riding) {
             cloud.discard();
             return InteractionResult.FAIL;
         }
-        stack.set(Lakitu.cloudData.get(), data.withCloudId(cloudId));
+        CloudData.save(stack, data.withCloudId(cloudId));
         // Summoning and dismissing share a short per-cloud cooldown, applied by vanilla after a successful use.
+        //#if MC >= 1.21.2
         stack.set(DataComponents.USE_COOLDOWN, new UseCooldown((float) config.cloudUseCooldownSeconds, Optional.of(CloudData.cooldownGroup(cloudId))));
+        //#endif
         serverLevel.sendParticles(ParticleTypes.CLOUD, cloud.getX(), cloud.getY() + 0.4, cloud.getZ(), 24, 0.6, 0.25, 0.6, 0.02);
         level.playSound(null, cloud.getX(), cloud.getY(), cloud.getZ(), LakituSounds.CLOUD_SUMMON, SoundSource.PLAYERS, 1.0F, 1.0F);
         return InteractionResult.SUCCESS;
     }
 
     @Override
+    //#if MC >= 1.21.5
     public void inventoryTick(ItemStack stack, ServerLevel level, Entity owner, @Nullable EquipmentSlot slot) {
+    //#else
+    public void inventoryTick(ItemStack stack, Level anyLevel, Entity owner, int slot, boolean selected) {
+        if (!(anyLevel instanceof ServerLevel level))
+            return;
+    //#endif
         if (!(owner instanceof Player player))
             return;
         DismountSlowFall.tick(player);
@@ -127,10 +174,10 @@ public class LakituCloudItem extends Item {
                 && data.cloudId().map(id -> !LakituCloudEntity.isOut(id)).orElse(true)) {
             float healed = data.healthAt(now);
             if (healed > data.health() + 0.001F)
-                stack.set(Lakitu.cloudData.get(), data = data.withHealth(healed, now));
+                CloudData.save(stack, data = data.withHealth(healed, now));
         }
-        if (level.getGameTime() % 20 == 0 && data.isReforming(level.getGameTime()) && data.cloudId().isPresent() && !player.getCooldowns().isOnCooldown(stack))
-            player.getCooldowns().addCooldown(CloudData.cooldownGroup(data.cloudId().get()), (int) (data.reformsAt() - level.getGameTime()));
+        if (level.getGameTime() % 20 == 0 && data.isReforming(level.getGameTime()) && data.cloudId().isPresent() && !CloudData.onCooldown(player, stack))
+            CloudData.startCooldown(player, data.cloudId().get(), (int) (data.reformsAt() - level.getGameTime()));
     }
 
     /** A cloud that died while its item was out of reach (dropped, in a chest) records its death here. */
@@ -142,11 +189,15 @@ public class LakituCloudItem extends Item {
             return;
         Long reformsAt = LakituCloudEntity.takePendingDeath(data.cloudId().get());
         if (reformsAt != null)
-            stack.set(Lakitu.cloudData.get(), data.died(level.getGameTime(), reformsAt));
+            CloudData.save(stack, data.died(level.getGameTime(), reformsAt));
     }
 
     private static String timeLeft(CloudData data, Level level) {
+        //#if MC >= 1.20.3
         return StringUtil.formatTickDuration((int) Math.max(0L, data.reformsAt() - level.getGameTime()), level.tickRateManager().tickrate());
+        //#else
+        return StringUtil.formatTickDuration((int) Math.max(0L, data.reformsAt() - level.getGameTime()));
+        //#endif
     }
 
     // --- Health bar and tooltip ---------------------------------------------------------------
@@ -168,7 +219,15 @@ public class LakituCloudItem extends Item {
     }
 
     @Override
+    //#if MC >= 1.21.5
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
+    //#elif MC >= 1.20.5
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
+        Consumer<Component> builder = lines::add;
+    //#else
+    public void appendHoverText(ItemStack stack, @org.jetbrains.annotations.Nullable Level level, List<Component> lines, TooltipFlag flag) {
+        Consumer<Component> builder = lines::add;
+    //#endif
         CloudData data = data(stack);
         builder.accept(Component.translatable("item.lakitu.lakitu_cloud.health", Math.round(data.health() * 100.0F)).withStyle(ChatFormatting.GRAY));
         builder.accept(Component.translatable("item.lakitu.lakitu_cloud.use").withStyle(ChatFormatting.DARK_GRAY));

@@ -2,9 +2,13 @@
   "required": true,
   "minVersion": "0.8",
   "package": "net.cystic.lakitu.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_17",
+//#if FORGE
+  "refmap": "lakitu.refmap.json",
+//#endif
   "mixins": [
-    "FlyingMountPlayerMixin"
+    "FlyingMountPlayerMixin",
+    "FlyingMountJumpAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

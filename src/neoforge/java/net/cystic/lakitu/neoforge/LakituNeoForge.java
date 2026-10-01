@@ -38,26 +38,45 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 @Mod(Lakitu.MOD_ID)
 public class LakituNeoForge {
     private static final DeferredRegister.DataComponents COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, Lakitu.MOD_ID);
+    //#if MC >= 1.21.2
     private static final DeferredRegister.Entities ENTITIES = DeferredRegister.createEntities(Lakitu.MOD_ID);
+    //#else
+    private static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, Lakitu.MOD_ID);
+    //#endif
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Lakitu.MOD_ID);
     private static final DeferredRegister<MobEffect> EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, Lakitu.MOD_ID);
     private static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(Registries.SOUND_EVENT, Lakitu.MOD_ID);
 
     static {
         for (SoundEvent sound : LakituSounds.ALL)
-            SOUNDS.register(sound.location().getPath(), () -> sound);
+            SOUNDS.register(LakituSounds.id(sound).getPath(), () -> sound);
     }
 
     private static final DeferredHolder<DataComponentType<?>, DataComponentType<CloudData>> CLOUD_DATA = COMPONENTS.register("cloud", CloudData::createType);
+    //#if MC >= 1.21.2
     private static final DeferredHolder<EntityType<?>, EntityType<LakituCloudEntity>> CLOUD = ENTITIES.register("lakitu_cloud",
             id -> LakituCloudEntity.builder().build(ResourceKey.create(Registries.ENTITY_TYPE, id)));
     private static final DeferredHolder<EntityType<?>, EntityType<LakituEntity>> LAKITU = ENTITIES.registerEntityType("lakitu",
             LakituEntity::new, MobCategory.MONSTER, LakituEntity::configure);
     private static final DeferredHolder<EntityType<?>, EntityType<SpinyEggEntity>> SPINY_EGG = ENTITIES.register("spiny_egg",
             id -> SpinyEggEntity.builder().build(ResourceKey.create(Registries.ENTITY_TYPE, id)));
+    //#else
+    private static final DeferredHolder<EntityType<?>, EntityType<LakituCloudEntity>> CLOUD = ENTITIES.register("lakitu_cloud",
+            () -> LakituCloudEntity.builder().build(Lakitu.id("lakitu_cloud").toString()));
+    private static final DeferredHolder<EntityType<?>, EntityType<LakituEntity>> LAKITU = ENTITIES.register("lakitu",
+            () -> LakituEntity.configure(EntityType.Builder.of(LakituEntity::new, MobCategory.MONSTER)).build(Lakitu.id("lakitu").toString()));
+    private static final DeferredHolder<EntityType<?>, EntityType<SpinyEggEntity>> SPINY_EGG = ENTITIES.register("spiny_egg",
+            () -> SpinyEggEntity.builder().build(Lakitu.id("spiny_egg").toString()));
+    //#endif
     private static final DeferredItem<LakituCloudItem> CLOUD_ITEM = ITEMS.registerItem("lakitu_cloud", LakituCloudItem::new);
     private static final DeferredItem<SpawnEggItem> SPAWN_EGG = ITEMS.registerItem("lakitu_spawn_egg",
+            //#if MC >= 1.21.9
             properties -> new SpawnEggItem(properties.spawnEgg(LAKITU.get())));
+            //#elif MC >= 1.21.4
+            properties -> new SpawnEggItem(LAKITU.get(), properties));
+            //#else
+            properties -> new SpawnEggItem(LAKITU.get(), 0xFDC934, 0x47A834, properties));
+            //#endif
     private static final DeferredItem<SpinyEggItem> SPINY_EGG_ITEM = ITEMS.registerItem("spiny_egg", SpinyEggItem::new);
     private static final DeferredHolder<MobEffect, CloudSpeedEffect> ALTITUDE = EFFECTS.register("altitude",
             () -> new CloudSpeedEffect(MobEffectCategory.BENEFICIAL, 0x9ED8FF));
@@ -102,6 +121,10 @@ public class LakituNeoForge {
         else if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS)
             event.insertAfter(new ItemStack(Items.GHAST_SPAWN_EGG), new ItemStack(SPAWN_EGG.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
         else if (event.getTabKey() == CreativeModeTabs.COMBAT)
+            //#if MC >= 1.21.5
             event.insertAfter(new ItemStack(Items.BLUE_EGG), new ItemStack(SPINY_EGG_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            //#else
+            event.insertAfter(new ItemStack(Items.EGG), new ItemStack(SPINY_EGG_ITEM.get()), CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            //#endif
     }
 }

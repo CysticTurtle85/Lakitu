@@ -32,7 +32,6 @@ import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Enemy;
-import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -88,15 +87,29 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     public LakituEntity(EntityType<? extends LakituEntity> type, Level level) {
         super(type, level);
         this.xpReward = 5;
-        this.moveControl = new Ghast.GhastMoveControl<>(this, false, () -> false);
+        this.moveControl = new LakituMovement.FloatMoveControl(this);
         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(LakituConfig.values.lakituMaxHealth);
         this.setHealth(this.getMaxHealth());
     }
 
     public static EntityType.Builder<LakituEntity> configure(EntityType.Builder<LakituEntity> builder) {
         // Cloud 1.25 blocks across, hair tips at 2 blocks, goggles at 1.45 (line of sight; eggs leave from the hand).
+        //#if MC >= 1.21.9
         return builder.sized(1.25F, 2.0F).eyeHeight(1.45F).notInPeaceful().clientTrackingRange(10);
+        //#elif MC >= 1.20.5
+        return builder.sized(1.25F, 2.0F).eyeHeight(1.45F).clientTrackingRange(10);
+        //#else
+        return builder.sized(1.25F, 2.0F).clientTrackingRange(10);
+        //#endif
     }
+
+    //#if MC < 1.20.5
+    /** Goggles at 1.45 blocks (the builder's eyeHeight() came in 1.20.5). */
+    @Override
+    protected float getStandingEyeHeight(net.minecraft.world.entity.Pose pose, net.minecraft.world.entity.EntityDimensions dimensions) {
+        return 1.45F;
+    }
+    //#endif
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
@@ -115,9 +128,16 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
                 && checkMobSpawnRules(type, level, reason, pos, random);
     }
 
+    //#if MC >= 1.20.5
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
         super.defineSynchedData(entityData);
+    //#else
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        SynchedEntityData entityData = this.entityData;
+    //#endif
         entityData.define(DATA_RAIN_CLOUD, false);
     }
 
@@ -129,16 +149,26 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(5, new HoverNearTargetGoal(this));
-        this.goalSelector.addGoal(6, new Ghast.RandomFloatAroundGoal(this));
-        this.goalSelector.addGoal(7, new Ghast.GhastLookGoal(this));
+        this.goalSelector.addGoal(6, new LakituMovement.FloatAroundGoal(this));
+        this.goalSelector.addGoal(7, new LakituMovement.FaceGoal(this));
         this.goalSelector.addGoal(7, new ThrowSpinyEggGoal(this));
+        //#if MC >= 1.21.2
         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false,
                 (target, level) -> !LakituCloudEntity.isRiding(target)));
+        //#else
+        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false,
+                target -> !LakituCloudEntity.isRiding(target)));
+        //#endif
     }
 
     @Override
+    //#if MC >= 1.21.2
     protected void customServerAiStep(ServerLevel level) {
         super.customServerAiStep(level);
+    //#else
+    protected void customServerAiStep() {
+        super.customServerAiStep();
+    //#endif
         LivingEntity target = this.getTarget();
         if (target == null)
             this.provokedBy = null;
@@ -169,13 +199,23 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         this.entityData.set(DATA_RAIN_CLOUD, rainCloud);
         AttributeInstance flyingSpeed = this.getAttribute(Attributes.FLYING_SPEED);
         flyingSpeed.removeModifier(RainCloud.SLOWDOWN);
+        //#if MC >= 1.21
         if (rainCloud)
             flyingSpeed.addTransientModifier(new AttributeModifier(RainCloud.SLOWDOWN, LakituConfig.values.rainCloudSpeed - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        //#else
+        if (rainCloud)
+            flyingSpeed.addTransientModifier(new AttributeModifier(RainCloud.SLOWDOWN, "Rain cloud", LakituConfig.values.rainCloudSpeed - 1.0, AttributeModifier.Operation.MULTIPLY_TOTAL));
+        //#endif
     }
 
     @Override
+    //#if MC >= 1.21.2
     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
         boolean hurt = super.hurtServer(level, source, damage);
+    //#else
+    public boolean hurt(DamageSource source, float damage) {
+        boolean hurt = super.hurt(source, damage) && !this.level().isClientSide();
+    //#endif
         if (hurt && source.getEntity() instanceof Player attacker && !attacker.isCreative() && !attacker.isSpectator()
                 && (!LakituCloudEntity.isRiding(attacker) || LakituConfig.values.lakituRetaliatesAgainstRiders)) {
             this.provokedBy = attacker.getUUID();
@@ -220,37 +260,68 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
         double dx = target.getX() - from.x;
         double dz = target.getZ() - from.z;
         double arc = Math.sqrt(dx * dx + dz * dz) * 0.2;
+        //#if MC >= 1.21.2
         Projectile.spawnProjectile(egg, level, ItemStack.EMPTY,
                 projectile -> projectile.shoot(dx, target.getEyeY() - 1.1 + arc - projectile.getY(), dz, 1.6F, 4.0F));
+        //#else
+        egg.shoot(dx, target.getEyeY() - 1.1 + arc - egg.getY(), dz, 1.6F, 4.0F);
+        level.addFreshEntity(egg);
+        //#endif
         this.playSound(LakituSounds.SPINY_EGG_THROW, 1.0F, 0.9F + this.getRandom().nextFloat() * 0.2F);
     }
 
     @Override
+    //#if MC >= 1.21
     protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean killedByPlayer) {
         super.dropCustomDeathLoot(level, source, killedByPlayer);
-        LakituConfig config = LakituConfig.values;
+        //#if MC >= 1.21.2
         int looting = source.getEntity() instanceof LivingEntity killer
                 ? EnchantmentHelper.getEnchantmentLevel(level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.LOOTING), killer)
                 : 0;
+        //#else
+        int looting = source.getEntity() instanceof LivingEntity killer
+                ? EnchantmentHelper.getEnchantmentLevel(level.registryAccess().registryOrThrow(Registries.ENCHANTMENT).getHolderOrThrow(Enchantments.LOOTING), killer)
+                : 0;
+        //#endif
+    //#else
+    protected void dropCustomDeathLoot(DamageSource source, int looting, boolean killedByPlayer) {
+        super.dropCustomDeathLoot(source, looting, killedByPlayer);
+    //#endif
+        LakituConfig config = LakituConfig.values;
         // Spiny eggs whoever killed it: 2-4, +1 per Looting level.
         int eggs = Mth.nextInt(this.getRandom(), config.lakituSpinyEggDropMin, Math.max(config.lakituSpinyEggDropMin, config.lakituSpinyEggDropMax))
                 + config.lakituSpinyEggDropPerLooting * looting;
+        boolean cloud = killedByPlayer && this.getRandom().nextDouble() < config.lakituCloudDropChance + config.lakituCloudDropChancePerLooting * looting;
+        //#if MC >= 1.21.2
         if (eggs > 0)
             this.spawnAtLocation(level, new ItemStack(Lakitu.spinyEggItem.get(), eggs));
-        if (killedByPlayer && this.getRandom().nextDouble() < config.lakituCloudDropChance + config.lakituCloudDropChancePerLooting * looting)
+        if (cloud)
             this.spawnAtLocation(level, new ItemStack(Lakitu.cloudItem.get()));
+        //#else
+        if (eggs > 0)
+            this.spawnAtLocation(new ItemStack(Lakitu.spinyEggItem.get(), eggs));
+        if (cloud)
+            this.spawnAtLocation(new ItemStack(Lakitu.cloudItem.get()));
+        //#endif
     }
 
     // --- Flying like a ghast --------------------------------------------------------------------
 
     @Override
     public void travel(Vec3 input) {
-        this.travelFlying(input, 0.02F);
+        LakituMovement.travel(this, input);
     }
 
     @Override
     protected void checkFallDamage(double ya, boolean onGround, BlockState onState, BlockPos pos) {
     }
+
+    //#if MC < 1.21.9
+    @Override
+    protected boolean shouldDespawnInPeaceful() {
+        return true;
+    }
+    //#endif
 
     @Override
     public boolean onClimbable() {
@@ -286,9 +357,14 @@ public class LakituEntity extends Mob implements Enemy, RangedAttackMob, GeoEnti
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+        // The "attack" controller animates the right arm, hand and held egg only, so it plays over the bob.
+        //#if MC >= 1.21.5
         controllers.add(new AnimationController<LakituEntity>("float", test -> test.setAndContinue(IDLE)));
-        // Right arm, hand and held egg only, so it plays over the bob.
         controllers.add(new AnimationController<LakituEntity>("attack", test -> PlayState.STOP).triggerableAnim("throw", THROW));
+        //#else
+        controllers.add(new AnimationController<>(this, "float", 0, state -> state.setAndContinue(IDLE)));
+        controllers.add(new AnimationController<>(this, "attack", 0, state -> PlayState.STOP).triggerableAnim("throw", THROW));
+        //#endif
     }
 
     @Override

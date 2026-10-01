@@ -1,13 +1,16 @@
 {
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
-  "ingredients": [
-    "#minecraft:eggs",
-    "minecraft:cactus",
-    "minecraft:red_dye"
-  ],
-  "result": {
-    "count": 2,
-    "id": "lakitu:spiny_egg"
-  }
+//#if MC >= 1.21.5
+  "ingredients": [ "#minecraft:eggs", "minecraft:cactus", "minecraft:red_dye" ],
+//#elif MC >= 1.21.2
+  "ingredients": [ "minecraft:egg", "minecraft:cactus", "minecraft:red_dye" ],
+//#else
+  "ingredients": [ { "item": "minecraft:egg" }, { "item": "minecraft:cactus" }, { "item": "minecraft:red_dye" } ],
+//#endif
+//#if MC >= 1.20.5
+  "result": { "count": 2, "id": "lakitu:spiny_egg" }
+//#else
+  "result": { "count": 2, "item": "lakitu:spiny_egg" }
+//#endif
 }

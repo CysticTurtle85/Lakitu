@@ -1,5 +1,6 @@
 package net.cystic.lakitu.item;
 
+import net.cystic.lakitu.Lakitu;
 import java.util.function.Consumer;
 import net.cystic.lakitu.LakituConfig;
 import net.cystic.lakitu.LakituSounds;
@@ -17,7 +18,11 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+//#if MC >= 1.21.5
 import net.minecraft.world.item.component.TooltipDisplay;
+//#else
+import java.util.List;
+//#endif
 import net.minecraft.world.level.Level;
 
 /**
@@ -30,27 +35,64 @@ public class SpinyEggItem extends Item {
         super(properties.stacksTo(16));
     }
 
+    //#if MC >= 1.21.2
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
+        return this.throwEgg(level, player, hand);
+    }
+    //#else
+    @Override
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        return this.throwEgg(level, player, hand) == InteractionResult.SUCCESS
+                ? net.minecraft.world.InteractionResultHolder.sidedSuccess(stack, level.isClientSide())
+                : net.minecraft.world.InteractionResultHolder.fail(stack);
+    }
+    //#endif
+
+    private InteractionResult throwEgg(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (!LakituCloudEntity.isRiding(player)) {
             if (!level.isClientSide())
-                player.sendOverlayMessage(Component.translatable("message.lakitu.spiny_egg_riders_only"));
+                Lakitu.actionBar(player, Component.translatable("message.lakitu.spiny_egg_riders_only"));
             return InteractionResult.FAIL;
         }
         level.playSound(null, player.getX(), player.getY(), player.getZ(), LakituSounds.SPINY_EGG_THROW, SoundSource.PLAYERS,
                 0.6F, 0.9F + level.getRandom().nextFloat() * 0.2F);
+        int cooldown = LakituConfig.ticks(LakituConfig.values.riderSpinyEggCooldownSeconds);
+        //#if MC >= 1.21.2
         if (level instanceof ServerLevel serverLevel)
             Projectile.spawnProjectileFromRotation((egg, thrower, from) -> new SpinyEggEntity(egg, thrower), serverLevel, stack, player, 0.0F, 1.5F, 1.0F);
-        player.getCooldowns().addCooldown(stack, LakituConfig.ticks(LakituConfig.values.riderSpinyEggCooldownSeconds));
+        player.getCooldowns().addCooldown(stack, cooldown);
+        //#else
+        if (level instanceof ServerLevel serverLevel) {
+            SpinyEggEntity egg = new SpinyEggEntity(serverLevel, player);
+            egg.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.5F, 1.0F);
+            serverLevel.addFreshEntity(egg);
+        }
+        player.getCooldowns().addCooldown(this, cooldown);
+        //#endif
         player.awardStat(Stats.ITEM_USED.get(this));
+        //#if MC >= 1.20.5
         stack.consume(1, player);
+        //#else
+        if (!player.getAbilities().instabuild)
+            stack.shrink(1);
+        //#endif
         return InteractionResult.SUCCESS;
     }
 
     /** Riders only, then the damage the way weapons show theirs ("When thrown:" / " 5 Attack Damage"). */
     @Override
+    //#if MC >= 1.21.5
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
+    //#elif MC >= 1.20.5
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> lines, TooltipFlag flag) {
+        Consumer<Component> builder = lines::add;
+    //#else
+    public void appendHoverText(ItemStack stack, @org.jetbrains.annotations.Nullable Level level, List<Component> lines, TooltipFlag flag) {
+        Consumer<Component> builder = lines::add;
+    //#endif
         builder.accept(Component.translatable("item.lakitu.spiny_egg.riders_only").withStyle(ChatFormatting.GRAY));
         builder.accept(Component.empty());
         builder.accept(Component.translatable("item.lakitu.spiny_egg.when_thrown").withStyle(ChatFormatting.GRAY));

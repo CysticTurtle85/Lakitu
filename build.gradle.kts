@@ -134,12 +134,15 @@ subprojects {
     )
     val preprocessJava = tasks.register<Sync>("preprocessJava") {
         inputs.properties(flags)
+        // The filter below lives in this script: rerun when the script changes.
+        inputs.file(rootProject.file("build.gradle.kts"))
         from(rootProject.file("src/main/java"), rootProject.file("src/$loader/java"))
         into(layout.buildDirectory.dir("preprocessed/java"))
         eachFile {
             val pp = Preprocessor(flags, keepLineNumbers = true)
-            // GeckoLib for 26.x moved from software.bernie.geckolib to com.geckolib; sources use the old name.
-            filter { line: String -> pp.line(line)?.let { if (unobfuscated) it.replace("software.bernie.geckolib.", "com.geckolib.") else it } }
+            // GeckoLib for 26.x moved from software.bernie.geckolib to com.geckolib; sources use the old name. Sources also
+            // use 1.21.11+'s Identifier: older versions call it ResourceLocation, and before 1.21 it's built with `new`.
+            filter { line: String -> pp.line(line)?.let { if (unobfuscated) it.replace("software.bernie.geckolib.", "com.geckolib.") else it }?.let { renameIdentifier(geckolibImports(it, mc), mc) } }
         }
     }
     val preprocessResources = tasks.register<Sync>("preprocessResources") {
@@ -170,8 +173,19 @@ subprojects {
     val mainSourceSet = sourceSets["main"]
     // Dev-only mod that lets tools/smoke_test.py drive the client (see TestDriver). Only the runClient run loads it;
     // it is never part of a release jar.
+    // Preprocessed like the main code, so one driver serves every Minecraft version.
+    val preprocessTestDriver = tasks.register<Sync>("preprocessTestDriver") {
+        inputs.properties(flags)
+        inputs.file(rootProject.file("build.gradle.kts"))
+        from(rootProject.file("src/testdriver/common/java"), rootProject.file("src/testdriver/$loader/java"))
+        into(layout.buildDirectory.dir("preprocessed/testdriver"))
+        eachFile {
+            val pp = Preprocessor(flags, keepLineNumbers = true)
+            filter { line: String -> pp.line(line)?.let { renameIdentifier(it, mc) } }
+        }
+    }
     val testDriver = sourceSets.create("testdriver") {
-        java.setSrcDirs(listOf(rootProject.file("src/testdriver/common/java"), rootProject.file("src/testdriver/$loader/java")))
+        java.setSrcDirs(listOf(preprocessTestDriver))
         resources.setSrcDirs(listOf(rootProject.file("src/testdriver/$loader/resources")))
         compileClasspath += mainSourceSet.compileClasspath + mainSourceSet.output
         runtimeClasspath += mainSourceSet.runtimeClasspath + mainSourceSet.output
@@ -248,15 +262,31 @@ subprojects {
                     register("client") {
                         client()
                         gameDirectory.set(file("run/client"))
+                        sourceSet.set(testDriver)
                     }
                     register("testClient") {
                         client()
                         gameDirectory.set(file("run/testclient"))
+                        sourceSet.set(testDriver)
                         programArguments.addAll(joinArgs)
                     }
                     register("server") { server(); gameDirectory.set(file("run/server")); programArgument("--nogui") }
                 }
-                mods { register(modId) { sourceSet(the<SourceSetContainer>()["main"]) } }
+                mods {
+                    register(modId) { sourceSet(the<SourceSetContainer>()["main"]) }
+                    register("${modId}_testdriver") { sourceSet(testDriver) }
+                }
+            }
+            // Forge has no Mojang names at runtime: mixins need a refmap (the "refmap" key in the mixin config is
+            // //#if FORGE) and the config named in the jar manifest. Only for mods that have mixins.
+            val mixinConfig = rootProject.file("src/main/resources/$modId.mixins.json")
+            if (mixinConfig.exists()) {
+                extensions.configure<net.neoforged.moddevgradle.legacyforge.dsl.MixinExtension> {
+                    add(the<SourceSetContainer>()["main"], "$modId.refmap.json")
+                    config("$modId.mixins.json")
+                }
+                dependencies { "annotationProcessor"("org.spongepowered:mixin:0.8.5:processor") }
+                tasks.named<Jar>("jar") { manifest.attributes("MixinConfigs" to "$modId.mixins.json") }
             }
             dependencies {
                 geckolib?.let { "modImplementation"(it) }
@@ -295,3 +325,40 @@ subprojects {
 }
 
 tasks.register("distAll") { dependsOn(subprojects.map { it.tasks.named("dist") }) }
+
+/** Sources are written against 1.21.11+'s `Identifier`; older versions call it `ResourceLocation` (constructed with `new` before 1.21). */
+fun renameIdentifier(line: String, mc: String): String {
+    // JSpecify's @Nullable comes with 1.21.11+; older versions have JetBrains' (also usable on types).
+    if (compareVersions(mc, "1.21.11") < 0 && line.startsWith("import org.jspecify.annotations.Nullable;"))
+        return "import org.jetbrains.annotations.Nullable;"
+    // EntitySpawnReason was MobSpawnType before 1.21.2 (same constants).
+    if (compareVersions(mc, "1.21.2") < 0 && line.contains("EntitySpawnReason"))
+        return renameIdentifier(line.replace("EntitySpawnReason", "MobSpawnType"), mc)
+    if (compareVersions(mc, "1.21.11") >= 0 || !line.contains("Identifier")) return line
+    var out = line.replace(Regex("""\bIdentifier\b"""), "ResourceLocation")
+    if (compareVersions(mc, "1.21") < 0)
+        out = out.replace("ResourceLocation.fromNamespaceAndPath(", "new ResourceLocation(").replace("ResourceLocation.withDefaultNamespace(", "new ResourceLocation(")
+    return out
+}
+
+/**
+ * Sources import GeckoLib 5.4+'s class names; older GeckoLib versions kept some classes elsewhere (checked against the
+ * jars: 5.1-5.3 on 1.21.5-1.21.10, 4.x on 1.21-1.21.4, 4.x with `core.*` packages on 1.20.1).
+ */
+fun geckolibImports(line: String, mc: String): String {
+    if (!line.startsWith("import software.bernie.geckolib.") || compareVersions(mc, "1.21.11") >= 0) return line
+    val gl = "software.bernie.geckolib."
+    var out = line.replace("${gl}cache.model.", "${gl}cache.object.")
+        .replace("${gl}animation.object.PlayState", "${gl}animation.PlayState")
+    if (compareVersions(mc, "1.21.5") >= 0)
+        return out.replace("${gl}animation.AnimationController", "${gl}animatable.processing.AnimationController")
+    out = out.replace("${gl}animatable.manager.AnimatableManager", "${gl}animation.AnimatableManager")
+    if (compareVersions(mc, "1.21") >= 0) return out
+    return out.replace("${gl}animation.AnimationController", "${gl}core.animation.AnimationController")
+        .replace("${gl}animation.AnimatableManager", "${gl}core.animation.AnimatableManager")
+        .replace("${gl}animation.RawAnimation", "${gl}core.animation.RawAnimation")
+        .replace("${gl}animation.PlayState", "${gl}core.object.PlayState")
+        .replace("${gl}animatable.instance.AnimatableInstanceCache", "${gl}core.animatable.instance.AnimatableInstanceCache")
+        .replace("${gl}animatable.GeoAnimatable;", "${gl}core.animatable.GeoAnimatable;")
+        .replace("${gl}constant.dataticket.DataTicket;", "${gl}core.object.DataTicket;")
+}

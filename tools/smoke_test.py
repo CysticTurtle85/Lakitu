@@ -432,8 +432,55 @@ def recipe_shot(game):
     game.run("setblock 0 -60 1 minecraft:air")
 
 
+def basics(game):
+    """Version-neutral checks for every port (1.20.1 to 26.3): the commands and checks here work on all of them. The
+    other parts are written for 26.3. Summon and ride, fly forward, throw a spiny egg, the effect text in the inventory
+    (EffectsInInventoryMixin), dismount, a Lakitu attacking a player on foot, and screenshots of both models."""
+    game.run("kill @e[type=lakitu:lakitu]")
+    game.run("effect clear @a")
+    game.run("tp @a 0 -60 0 0 0")
+    game.run(f"item replace entity @a weapon.mainhand with {CLOUD}")
+    time.sleep(1.5)
+    game.use()
+    game.check("basics: riding the cloud", wait_until(lambda: riding(game), 5))
+    game.view("THIRD_PERSON_BACK")
+    game.shot("b1-riding")
+    game.view("FIRST_PERSON")
+    moved = forward_1s(game)
+    game.values["basics: forward (1 s W)"] = moved
+    game.check("basics: flies forward (> 4 blocks)", moved is not None and moved > 4.0)
+    game.run("kill @e[type=lakitu:spiny_egg]")
+    game.run("item replace entity @a weapon.offhand with lakitu:spiny_egg 16")
+    game.use(wait=0.3, hand="off")
+    game.check("basics: throws a spiny egg from the cloud", game.count("@e[type=lakitu:spiny_egg]") >= 1)
+    game.drive("inventory")
+    time.sleep(1.5)
+    game.shot("b2-effect")
+    game.drive("close")
+    time.sleep(0.5)
+    game.use()
+    game.check("basics: dismounted", not riding(game))
+    game.run("item replace entity @a weapon.offhand with minecraft:air")
+    game.run("tp @a 0 -60 0 0 0")
+    # Model shot at eye level (facing the player), then AI on for the attack.
+    game.run('summon lakitu:lakitu 0 -60 5 {NoAI:1b,PersistenceRequired:1b,Rotation:[180f,0f],Tags:["test_lakitu"]}')
+    time.sleep(3)
+    game.shot("b3-lakitu")
+    game.run(f"data merge entity {LAKITU_SEL} {{NoAI:0b}}")
+    eggs_seen = 0
+    for _ in range(40):
+        time.sleep(0.2)
+        eggs_seen += game.count("@e[type=lakitu:spiny_egg]") > 0
+    game.values["basics: spiny eggs seen from a Lakitu"] = eggs_seen
+    game.check("basics: a Lakitu throws spiny eggs at a player on foot", eggs_seen > 0)
+    game.run(f"execute as @a at @s facing entity {LAKITU_SEL} feet run tp @s ~ ~ ~ ~ ~")
+    time.sleep(0.5)
+    game.shot("b4-lakitu-moving")
+    game.run("kill @e[type=lakitu:lakitu]")
+
+
 PARTS = [lakitu_model, summon, flight, altitude, rider_eggs, dismount, cloud_health, rain, cloud_death, lakitu_ai,
-         lakitu_drops, spiny_egg_model, dimensions, recipe_shot]
+         lakitu_drops, spiny_egg_model, dimensions, recipe_shot, basics]
 
 if __name__ == "__main__":
     mctest.main(PARTS)
