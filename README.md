@@ -26,8 +26,8 @@ Every number is configurable in `config/lakitu.json`. See [DECISIONS.md](DECISIO
 | Minecraft | Loaders | Requires |
 |---|---|---|
 | 26.3, 26.2, 26.1.2 | Fabric, Quilt, NeoForge | GeckoLib (+ Fabric API on Fabric/Quilt) |
-| 1.21.11, 1.21.10, 1.21.8, 1.21.5, 1.21.4, 1.21.1 (and 1.21) | Fabric, Quilt, NeoForge | GeckoLib (+ Fabric API on Fabric/Quilt) |
-| 1.20.1 (and 1.20) | Fabric, Quilt, Forge | GeckoLib (+ Fabric API on Fabric/Quilt) |
+| 1.21.11, 1.21.10, 1.21.8, 1.21.5, 1.21.4, 1.21.1 | Fabric, Quilt, NeoForge | GeckoLib (+ Fabric API on Fabric/Quilt) |
+| 1.20.1 | Fabric, Quilt, Forge | GeckoLib (+ Fabric API on Fabric/Quilt) |
 
 ## Building
 

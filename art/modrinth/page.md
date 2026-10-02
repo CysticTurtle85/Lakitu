@@ -25,8 +25,8 @@ Lakitus now drift over the mountains on their clouds, throwing Spiny Eggs at any
 | Minecraft | Loaders |
 |---|---|
 | 26.3, 26.2, 26.1.2 | Fabric, Quilt, NeoForge |
-| 1.21.11, 1.21.10, 1.21.8, 1.21.5, 1.21.4, 1.21.1 (and 1.21) | Fabric, Quilt, NeoForge |
-| 1.20.1 (and 1.20) | Fabric, Quilt, Forge |
+| 1.21.11, 1.21.10, 1.21.8, 1.21.5, 1.21.4, 1.21.1 | Fabric, Quilt, NeoForge |
+| 1.20.1 | Fabric, Quilt, Forge |
 
 ## 🔗Dependencies
 This mod makes use of [GeckoLib](https://modrinth.com/mod/geckolib), plus [Fabric API](https://modrinth.com/mod/fabric-api) on Fabric and Quilt. Your launcher installs them for you.
