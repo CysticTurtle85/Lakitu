@@ -322,6 +322,25 @@ subprojects {
             listProperty("optional_mods").forEach { optional.project(it) }
         }
     }
+    // Minotaur uploads through Modrinth's v2 API, which has no environment field: set each new version's environment
+    // (what the page shows as "Client and server" etc.) through v3 right after its upload, from gradle.properties
+    // `modrinth_environment` (values and how to choose: the skill's references/modrinth.md). Missing: stop before uploading.
+    if (modrinthProject.isNotEmpty()) tasks.named<com.modrinth.minotaur.TaskModrinthUpload>("modrinth") {
+        val environment = rootProject.findProperty("modrinth_environment") as String?
+        doFirst { requireNotNull(environment) { "Set modrinth_environment in gradle.properties (e.g. client_and_server)" } }
+        doLast {
+            val id = uploadInfo?.id ?: return@doLast // dry run: nothing was uploaded
+            val request = java.net.http.HttpRequest.newBuilder(java.net.URI("https://api.modrinth.com/v3/version/$id"))
+                .header("Authorization", System.getenv("MODRINTH_TOKEN"))
+                .header("Content-Type", "application/json")
+                .header("User-Agent", "CysticTurtle85/minecraft-multiloader-mods")
+                .method("PATCH", java.net.http.HttpRequest.BodyPublishers.ofString("{\"environment\":\"$environment\"}"))
+                .build()
+            val response = java.net.http.HttpClient.newHttpClient().send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+            check(response.statusCode() == 204) { "Setting the environment of Modrinth version $id failed: ${response.statusCode()} ${response.body()}" }
+            logger.lifecycle("Modrinth version $id: environment $environment")
+        }
+    }
 }
 
 tasks.register("distAll") { dependsOn(subprojects.map { it.tasks.named("dist") }) }
