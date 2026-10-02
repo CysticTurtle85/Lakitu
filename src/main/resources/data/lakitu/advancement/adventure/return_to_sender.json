@@ -16,12 +16,12 @@
       "conditions": {
         "entity":
 //#if MC >= 26.3
-        { "type": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } }
+        { "type": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } },
 //#elif MC >= 26.2
-        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } } ]
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "minecraft:entity_type": "lakitu:lakitu" } } ],
 //#else
-        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "type": "lakitu:lakitu" } } ]
-//#endif,
+        [ { "condition": "minecraft:entity_properties", "entity": "this", "predicate": { "type": "lakitu:lakitu" } } ],
+//#endif
 //#if MC >= 26.2
         "damage": { "type": { "direct_entity": { "minecraft:entity_type": "lakitu:spiny_egg" } } }
 //#else

@@ -210,8 +210,9 @@ def altitude(game):
 
 
 def rider_eggs(game):
-    """A rider throws spiny eggs from the off hand, one per second; on foot they can't."""
-    mount(game)
+    """A rider throws spiny eggs from the off hand, one per second; on foot they can't. Away from the test Lakitu, which
+    an egg would otherwise hit (and provoke)."""
+    mount(game, 20, -60, 0)
     game.run("kill @e[type=lakitu:spiny_egg]")
     game.run("item replace entity @a weapon.offhand with lakitu:spiny_egg 16")
     game.use(wait=0.3, hand="off")
@@ -434,11 +435,12 @@ def recipe_shot(game):
 
 def basics(game):
     """Version-neutral checks for every port (1.20.1 to 26.3): the commands and checks here work on all of them. The
-    other parts are written for 26.3. Summon and ride, fly forward, throw a spiny egg, the effect text in the inventory
+    other parts are written for 26.3. At x 40, clear of the other parts' leftovers (the Nether portal at the origin). Summon and ride, fly forward, throw a spiny egg, the effect text in the inventory
     (EffectsInInventoryMixin), dismount, a Lakitu attacking a player on foot, and screenshots of both models."""
     game.run("kill @e[type=lakitu:lakitu]")
     game.run("effect clear @a")
-    game.run("tp @a 0 -60 0 0 0")
+    game.run("execute in minecraft:overworld run tp @a 40 -60 0 0 0")
+    time.sleep(3)
     game.run(f"item replace entity @a weapon.mainhand with {CLOUD}")
     time.sleep(1.5)
     game.use()
@@ -461,9 +463,9 @@ def basics(game):
     game.use()
     game.check("basics: dismounted", not riding(game))
     game.run("item replace entity @a weapon.offhand with minecraft:air")
-    game.run("tp @a 0 -60 0 0 0")
+    game.run("tp @a 40 -60 0 0 0")
     # Model shot at eye level (facing the player), then AI on for the attack.
-    game.run('summon lakitu:lakitu 0 -60 5 {NoAI:1b,PersistenceRequired:1b,Rotation:[180f,0f],Tags:["test_lakitu"]}')
+    game.run('summon lakitu:lakitu 40 -60 5 {NoAI:1b,PersistenceRequired:1b,Rotation:[180f,0f],Tags:["test_lakitu"]}')
     time.sleep(3)
     game.shot("b3-lakitu")
     game.run(f"data merge entity {LAKITU_SEL} {{NoAI:0b}}")
